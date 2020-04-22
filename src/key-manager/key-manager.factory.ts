@@ -3,10 +3,12 @@ import { ConfigService } from '@nestjs/config';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import axios from 'axios';
 import { AxiosInstance } from 'axios';
+import { identClientFactory } from 'provide-js';
 import { Repository } from 'typeorm';
 import { CryptographyService } from '../cryptography/cryptography.service';
 import { DbKeyManager } from './implementations/key-manager-db';
 import { DbKeyPair } from './implementations/key-manager-db.entity';
+import { ProvideKeyManager } from './implementations/key-manager-provide';
 import { VaultKeyManager } from './implementations/key-manager-vault';
 import { KeyManager } from './key-manager.interface';
 
@@ -36,18 +38,8 @@ export const keyManagerFactory: FactoryProvider<KeyManager> = {
         return new DbKeyManager(keypairRepository, cryptographyService);
       },
       provide: (): KeyManager => {
-        const baseURL = config.get<string>('keymanager.vault.url');
-        const timeout = config.get<number>('keymanager.vault.timeout');
         const vaultToken = config.get<string>('keymanager.vault.token');
-
-        const axiosClient: AxiosInstance = axios.create({
-          baseURL,
-          timeout,
-          headers: {
-            'X-Vault-Token': vaultToken,
-          },
-        });
-        return new VaultKeyManager(axiosClient, cryptographyService);
+        return new ProvideKeyManager(identClientFactory(vaultToken), cryptographyService);
       },
     };
     const type = config.get<string>('keymanager.type');
