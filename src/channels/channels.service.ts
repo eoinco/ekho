@@ -60,18 +60,7 @@ export class ChannelsService {
 
   // *** Functional Methods ***
 
-  // Process all pending blockchain events in DB
-
-  // change this to iterating through all channel members
-  // looking for next channel identifier
-  // if it finds it, process it
-  // keep going until all channel members are done and
-  // no new events are found
-  // for loop through channel members
-  // if one channel identifier found, process and iterate again on that channel member
-  // until all events are processed
-  // go onto next channel member
-
+  // Process all blockchain events in DB to look for messages
   async process(userId: number): Promise<ProcessReport> {
     const processReport = new ProcessReport();
     processReport.receivedMessages = 0;
@@ -129,14 +118,14 @@ export class ChannelsService {
     Logger.debug('Processing pending events');
     try {
       while (!completed) {
-        // iterate through contact
-
         const unprocessedEvent: EkhoEventDto = await this.eventService.getFirstUnprocessedEvent();
+
         if (unprocessedEvent) {
           const incomingMessage = new EncodedMessageDto();
           incomingMessage.channelIdentifier = unprocessedEvent.channelIdentifier;
           incomingMessage.encryptedMessageLink = unprocessedEvent.encryptedMessageLink;
           incomingMessage.encryptedMessageLinkSignature = unprocessedEvent.encryptedMessageLinkSignature;
+
           // get the original event
           const msgEvent: EkhoEvent = await this.eventService.getOneById(unprocessedEvent.eventIdentifier);
 
@@ -149,7 +138,6 @@ export class ChannelsService {
           } catch (e) {
             Logger.debug('Event could not be decoded', unprocessedEvent.eventIdentifier.toString());
           } finally {
-            await this.eventService.markEventAsProcessed(unprocessedEvent.eventIdentifier);
             processReport.processedTotal++;
           }
         } else {
@@ -190,10 +178,8 @@ export class ChannelsService {
       nonce,
     );
 
-    // Get the message key
+    // Get the message key and add it to the channelmessage details
     const messageKey = await this.getMessageKey(channelMember.messageChainKey);
-
-    // update the message with the message key  //TODO refactor this so it's less fragmented
     newChannelMessage.messageKey = messageKey;
 
     // encrypt the message
@@ -207,6 +193,7 @@ export class ChannelsService {
 
     // send the message to IPFS
     const messageLink = await this.sendToIpfs(newEncryptedMessage);
+    newChannelMessage.ipfsHash = messageLink;
 
     // encrypt the message link with the message key
     const encryptedMessageLink = this.cryptoService.encrypt(messageLink, nonce, messageKey, this.UTF_8, this.BASE_64);
@@ -221,10 +208,10 @@ export class ChannelsService {
     const encryptedSignature = this.cryptoService.encrypt(Signature, nonce, messageKey, this.BASE_64, this.BASE_64);
 
     // send the blockchain transaction
-    const mined = await this.sendToChain(channelIdentifier, encryptedMessageLink, encryptedSignature);
+    const txHash = await this.sendToChain(channelIdentifier, encryptedMessageLink, encryptedSignature);
 
     // sacrifice a chicken in the hope that this has been successful
-    if (mined) {
+    if (txHash) {
       // Update the member message chain key
       channelMember.messageChainKey = await this.ratchetChainKey(channelMember.messageChainKey);
 
@@ -234,6 +221,10 @@ export class ChannelsService {
         channelMember.channel.channelKey,
         nonce + 1,
       );
+
+      // get the event details
+      const ekhoEvent = await this.eventService.getByTransactionHash(txHash);
+      newChannelMessage.ekhoEvent = ekhoEvent;
 
       // save the channel member & message details
       await getManager().transaction(async transactionalEntityManager => {
@@ -565,14 +556,21 @@ export class ChannelsService {
       } else {
         Logger.debug('signature valid');
 
+        // get the decrypted IPFS messade link
+        const decryptedMessageLink = await this.getDecryptedMessageLink(encryptedMessageLink, nonce, messageKey);
+
         // get the raw message
-        const rawMessage = await this.getRawMessage(encryptedMessageLink, nonce, messageKey);
+        const rawMessage = await this.getRawMessage(decryptedMessageLink, nonce, messageKey);
 
         // the message is an incoming message, so set up the Channel Message object
         const newChannelMessage = await this.createMessage(channelMember, rawMessage, nonce);
 
-        // associate the message with the event
+        // associate the message with the event and store the decryption key (for repudiation)
         newChannelMessage.ekhoEvent = messageEvent;
+        newChannelMessage.messageKey = messageKey;
+
+        // store the decrypted ipfs hash
+        newChannelMessage.ipfsHash = decryptedMessageLink;
 
         // update the channel member
         const updatedChannelMember = await this.updateChannelMemberDetails(channelMember, nonce);
@@ -730,11 +728,13 @@ export class ChannelsService {
     return this.cryptoService.hash(messageChainKey + this.MESSAGE_KEY_RATCHET);
   }
 
-  // returns the raw data (string for moment) from an encrypted IPFS link
-  private async getRawMessage(encryptedLink: string, nonce: number, key: string): Promise<string> {
-    Logger.debug('getting IPFS address');
-
+  private async getDecryptedMessageLink(encryptedLink: string, nonce: number, key: string): Promise<string> {
     const rawMessageLink = this.cryptoService.decrypt(encryptedLink, nonce, key, this.BASE_64, this.UTF_8);
+    return rawMessageLink;
+  }
+  // returns the raw data (string for moment) from an encrypted IPFS link
+  private async getRawMessage(rawMessageLink: string, nonce: number, key: string): Promise<string> {
+    Logger.debug('getting IPFS file data');
     const rawMessageEncrypted = (await this.ipfsService.retrieve(rawMessageLink)).content;
     const rawMessage = this.cryptoService.decrypt(rawMessageEncrypted, nonce, key, this.BASE_64, this.UTF_8);
     return rawMessage;
@@ -790,7 +790,7 @@ export class ChannelsService {
   }
 
   // sends ekho event to chain
-  private async sendToChain(channelId: string, link: string, signature: string): Promise<boolean> {
+  private async sendToChain(channelId: string, link: string, signature: string): Promise<string> {
     try {
       Logger.debug('emitting event to chain');
 
@@ -799,9 +799,9 @@ export class ChannelsService {
       ekho.encryptedMessageLink = link;
       ekho.encryptedMessageLinkSignature = signature;
 
-      await this.web3Service.emitEkho(ekho);
+      const txHash = await this.web3Service.emitEkho(ekho);
 
-      return true;
+      return txHash;
     } catch (e) {
       throw e;
     }

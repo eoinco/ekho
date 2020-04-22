@@ -60,6 +60,10 @@ export class Web3Service {
     await this.Refresh();
   }
 
+  async GetAllLogs(): Promise<void> {
+    // TODO implement the eth_getLogs and look at supplementing/replacing the websocket below
+  }
+
   async Refresh(): Promise<void> {
     Logger.debug('eventlog subscriber: polling blockchain for new log events.');
     let transactionsFound: number = 0;
@@ -95,7 +99,6 @@ export class Web3Service {
         tx.txHash = transactionHash;
         tx.status = 'mined'; // TODO: change to ENUM
         tx.block = blockNumber;
-        tx.processed = false;
 
         const dbEvent = await this.eventsService.getByTransactionHash(tx.txHash);
         if (!dbEvent) {

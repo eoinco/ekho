@@ -21,6 +21,9 @@ export class ChannelMessage {
   @Column()
   messageContents: string;
 
+  @Column()
+  ipfsHash: string;
+
   @Column({ default: 0 })
   nonce: number;
 

@@ -40,6 +40,7 @@ var anonChannelMessage: ChannelMessage = {
   nonce: 0,
   messageKey: 'no-such-key',
   ekhoEvent: null,
+  ipfsHash: 'Qm...',
 };
 
 var anonChannel: Channel = {

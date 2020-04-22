@@ -10,6 +10,11 @@ export class Web3Controller {
     return this.web3Service.Refresh();
   }
 
+  @Get('historical')
+  async GetHistoricalLogs(): Promise<void> {
+    return this.web3Service.GetAllLogs();
+  }
+
   @Post('random')
   async generateRandomMessage(): Promise<string> {
     return this.web3Service.emitEkho();

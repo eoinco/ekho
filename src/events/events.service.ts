@@ -44,15 +44,6 @@ export class EventsService {
     return cachedBlocks.max;
   }
 
-  async markEventAsProcessed(id: number): Promise<boolean> {
-    Logger.debug('marking event as processed.  id: ', id.toString());
-
-    const myEvent = await this.getOneById(id);
-    myEvent.processed = true;
-    await this.save(myEvent);
-    return true;
-  }
-
   async getFirstUnprocessedEvent(): Promise<EkhoEventDto> {
     Logger.debug('looking for unprocessed blockchain event.');
 
@@ -61,7 +52,6 @@ export class EventsService {
       .select('MIN(EkhoEvent.id)', 'id')
       .addSelect(['EkhoEvent.channelId, EkhoEvent.content, EkhoEvent.signature'])
       .groupBy('EkhoEvent.id')
-      .where('EkhoEvent.processed = false')
       .orderBy('EkhoEvent.id', 'ASC')
       .getRawOne();
 
