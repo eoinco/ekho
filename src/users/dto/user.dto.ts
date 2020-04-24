@@ -11,10 +11,4 @@ export default class UserDto implements Partial<User> {
   @Field()
   @ApiProperty({ description: 'User name' })
   name: string;
-
-  @ApiProperty({ description: 'Access Token' })
-  accessToken: string;
-
-  @ApiProperty({ description: 'Refresh Token' })
-  refreshToken: string;
 }

@@ -40,8 +40,6 @@ export class UsersService {
       return {
         id: dbUser.id,
         name: dbUser.name,
-        accessToken: dbUser.accessToken,
-        refreshToken: dbUser.refreshToken,
       };
     } catch (e) {
       await queryRunner.rollbackTransaction();

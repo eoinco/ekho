@@ -7,11 +7,11 @@ export default class CreateExternalChannelDto {
   @ApiProperty({ description: 'Channel creator' })
   userId: string;
   @ApiProperty({ description: 'Channel name' })
-  name: string;
+  channelName: string;
   @ApiProperty({ description: 'Contact Name' })
   contactName: string;
-  @ApiProperty({ description: 'Contact Integration Identifier' })
-  contactIntegrationId: string;
+  @ApiProperty({ description: 'Contact Identifier' })
+  contactIdentifier: string;
   @ApiProperty({ description: 'Contact Public Key' })
   contactPublicKey: string;
   @ApiProperty({ description: 'Contact Shared Secret' })

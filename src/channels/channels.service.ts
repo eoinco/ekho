@@ -370,13 +370,13 @@ export class ChannelsService {
       channel.userId,
       channel.contactName,
       channel.contactPublicKey,
-      channel.contactIntegrationId,
+      channel.contactIdentifier,
     );
 
     const sharedSecret = channel.channelSharedSecret;
 
     // 4. create channel
-    const newChannel = await this.createChannel(channel.name, sharedSecret);
+    const newChannel = await this.createChannel(channel.channelName, sharedSecret);
 
     // 5. create channelmember for user
     const userChannelMember = await this.createChannelMember(channelUser, null, newChannel, sharedSecret);

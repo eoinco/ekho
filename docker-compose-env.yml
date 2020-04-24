@@ -1,0 +1,68 @@
+---
+version: '3.7'
+services:
+  ekho:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 3000:3000
+    networks:
+      - network
+    environment:
+      - IPFS_HOST=ipfs.infura.io
+      - IPFS_PORT=5001
+      - WEB3_CHAIN=rinkeby
+      - WEB3_HARDFORK=muirGlacier
+      - WEB3_RPC_URL=wss://rinkeby.infura.io/ws/v3/<<infura_auth_token goes here>>
+      - WEB3_CONTRACT_ADDRESS=<<contract address goes here - 0x...>>
+      - WEB3_BROADCAST_ACC_ADDRESS=<<broadcasting account address goes here - 0x...>>
+      - WEB3_BROADCAST_ACC_PUBLIC_KEY=<<broadcasting account public key goes here - 0x...>>
+      - WEB3_BROADCAST_ACC_PRIVATE_KEY=<<broadcasting account private key goes here - 0x...>>
+      - WEB3_GASPRICE=10
+      - VAULT_URL=http://vault:8200
+      - VAULT_TOKEN=ekho-vault-token
+      - KEY_MANAGER_TYPE=<<db|vault|provide>>
+      - BEARER_JWT_PUBLIC_KEY=<<bearer public key goes here - future auth integration>>
+  db:
+    image: docker.io/postgres:11.6-alpine
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=ekho
+      - POSTGRES_PASSWORD=ekho
+      - POSTGRES_DB=ekho
+    volumes:
+      - ekho-db:/var/lib/postgresql/data
+    networks:
+      network:
+        aliases:
+          - db
+  vault:
+    image: vault:1.3.2
+    restart: always
+    ports:
+      - 8200:8200
+    environment:
+      - VAULT_DEV_ROOT_TOKEN_ID=ekho-vault-token
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - ./conf/vault-dev.json:/config.json
+      - ekho-vault:/vault/file
+  vault-configure:
+    image: alpine:3.11.3
+    restart: on-failure
+    environment:
+      - VAULT_URL=http://vault:8200
+      - VAULT_DEV_ROOT_TOKEN_ID=ekho-vault-token
+    volumes:
+      - ./bin/wait-for-command.sh:/bin/wait-for-command:ro
+      - ./bin/provision-vault-dev.sh:/bin/provision-vault:ro
+    command: sh -c "/bin/provision-vault"
+volumes:
+  ekho-db:
+  ekho-vault:
+networks:
+  network:
