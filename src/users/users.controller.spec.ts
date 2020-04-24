@@ -13,7 +13,7 @@ describe('Users Controller', () => {
   const anonName = 'Farts McGubbins';
 
   const anonUser = fakeUser({ name: anonName });
-  const anonUserDto: CreateUserDto = { name: anonName };
+  const anonUserDto: CreateUserDto = { id: 'uuid', name: anonName, accessToken: '', refreshToken: '' };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({

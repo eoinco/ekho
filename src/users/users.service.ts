@@ -19,6 +19,18 @@ export class UsersService {
     const newUser = new User();
     newUser.name = user.name;
 
+    if (user.id) {
+      newUser.id = user.id;
+    }
+
+    if (user.accessToken) {
+      newUser.accessToken = user.accessToken;
+    }
+
+    if (user.refreshToken) {
+      newUser.refreshToken = user.refreshToken;
+    }
+
     const queryRunner = this.userRepository.manager.connection.createQueryRunner();
     queryRunner.startTransaction();
     try {
@@ -28,6 +40,8 @@ export class UsersService {
       return {
         id: dbUser.id,
         name: dbUser.name,
+        accessToken: dbUser.accessToken,
+        refreshToken: dbUser.refreshToken,
       };
     } catch (e) {
       await queryRunner.rollbackTransaction();

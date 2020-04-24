@@ -16,6 +16,12 @@ export class User {
   @Column({ length: 500 })
   name: string;
 
+  @Column({ nullable: true })
+  accessToken: string;
+
+  @Column({ nullable: true })
+  refreshToken: string;
+
   @Field(type => [ChannelMember], { nullable: true })
   @OneToMany(
     type => ChannelMember,
