@@ -13,7 +13,7 @@ describe('UsersService', () => {
   let repository: Repository<User>;
 
   const anonName = 'anon';
-  const anonUserDto: CreateUserDto = { id: 'uuid', name: anonName, accessToken: '', refreshToken: '' };
+  const anonUserDto: CreateUserDto = { userId: 'uuid', name: anonName, accessToken: '', refreshToken: '' };
   const anonUser = fakeUser({ name: anonName });
   const vaultServiceMock = {
     userWritePrivateKey: jest.fn(),

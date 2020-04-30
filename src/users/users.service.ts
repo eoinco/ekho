@@ -19,8 +19,8 @@ export class UsersService {
     const newUser = new User();
     newUser.name = user.name;
 
-    if (user.id) {
-      newUser.id = user.id;
+    if (user.userId) {
+      newUser.id = user.userId;
     }
 
     if (user.accessToken) {

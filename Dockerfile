@@ -12,7 +12,7 @@ WORKDIR /app
 COPY --from=builder "/builder/dist/"               "/app/dist/"
 COPY --from=builder "/builder/node_modules/"       "/app/node_modules/"
 COPY --from=builder "/builder/ormconfig-prod.json" "/app/ormconfig.json"
-COPY --from=builder "/builder/.env"                "/app/.env"
+#COPY --from=builder "/builder/.env"                "/app/.env"
 
 EXPOSE 3000
 

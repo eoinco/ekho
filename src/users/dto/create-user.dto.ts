@@ -5,7 +5,7 @@ import { User } from '../entities/users.entity';
 @InputType({ description: 'New user name' })
 export default class CreateUserDto implements Partial<User> {
   @ApiProperty({ description: 'User Identifier (optional)' })
-  id: string;
+  userId: string;
 
   @Field()
   @ApiProperty({ description: 'User name' })

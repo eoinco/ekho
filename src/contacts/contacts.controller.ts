@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Contact } from './contacts.entity';
 import { ContactsService } from './contacts.service';
 import ContactHandshakeDto from './dto/contact-handshake.dto';
@@ -8,16 +9,19 @@ import ContactDto from './dto/contact.dto';
 export class ContactsController {
   constructor(private readonly contactsService: ContactsService) {}
 
+  @UseGuards(JwtAuthGuard)
   @Get(':userId')
   async getContactsForUser(@Param('userId') userId: string): Promise<ContactDto[]> {
     return this.contactsService.getByUser(userId);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get(':userId/:contactId')
   async findContactByUser(@Param('userId') userId: string, @Param('contactId') contactId: number): Promise<Contact> {
     return this.contactsService.findOneContact(userId, contactId);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post('generate-init-handshake/:userId/:contactName')
   async initHandshake(
     @Param('userId') userId: string,
@@ -26,6 +30,7 @@ export class ContactsController {
     return this.contactsService.initHandshake(userId, contactName);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post('accept-init-handshake/:userId/:contactName')
   async acceptInitHandshake(
     @Param('userId') userId: string,
@@ -35,6 +40,7 @@ export class ContactsController {
     await this.contactsService.acceptInitHandshake(userId, contactName, initHandshake);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post('generate-reply-handshake/:userId/:contactName')
   async generateReplyHandshake(
     @Param('userId') userId: string,
@@ -43,6 +49,7 @@ export class ContactsController {
     return this.contactsService.replyHandshake(userId, contactName);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post('accept-reply-handshake/:userId/:contactName')
   async acceptReplyHandshake(
     @Param('userId') userId: string,

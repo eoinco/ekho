@@ -456,14 +456,16 @@ export class ChannelsService {
   }
 
   // Finds a channelmessage  by id (TODO: for user id)
-  async findChannelMessageByContactId(id: number): Promise<ChannelMessage[]> {
+  async findChannelMessageByContactId(userId: string, contactId: number): Promise<ChannelMessage[]> {
     const allMessages = await this.channelMessageRepository.find({
       relations: ['channelMember', 'channelMember.contact'],
+      // TODO filter for only contacts belonging to that user!
+      // where: { channelMember.contact.user: userId }
       // missing where clause - see above findChannelMessageByUserId
       order: { id: 'ASC' },
     });
     // see above findChannelMessageByUserId
-    return allMessages.filter(m => m.channelMember.contact?.id === parseInt(`${id}`, 10));
+    return allMessages.filter(m => m.channelMember.contact?.id === parseInt(`${contactId}`, 10));
   }
 
   // Finds all channel messages (TODO: for user id)
