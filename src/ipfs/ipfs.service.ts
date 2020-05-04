@@ -13,9 +13,9 @@ export class IpfsService {
    */
   async retrieve(ipfsPath: string): Promise<IpfsMessageDto> {
     try {
-      Logger.debug('getting file from IPFS', ipfsPath);
+      Logger.debug(`Ipfs.retrieve: getting ${ipfsPath} from IPFS`);
       const [file] = await this.ipfs.get(ipfsPath);
-      Logger.debug('IPFS file retrieved');
+      Logger.debug(`Ipfs.retrieve: got ${ipfsPath} from IPFS`);
       return JSON.parse(file.content.toString('utf8'));
     } catch (e) {
       throw e;
@@ -34,10 +34,10 @@ export class IpfsService {
     const bufferedData = Buffer.from(stringData, 'utf-8');
     const [result] = await this.ipfs.add(bufferedData);
     if (result) {
-      Logger.debug('file shared via IPFS, path: ', result.path);
+      Logger.debug(`Ipfs.store: file ${result.path} shared via IPFS`);
       return result.path;
     } else {
-      throw new Error('error saving to IPFS');
+      throw new Error('Ipfs.store: Error saving to Ipfs');
     }
   }
 }

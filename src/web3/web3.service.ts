@@ -61,7 +61,7 @@ export class Web3Service {
   }
 
   async Refresh(): Promise<void> {
-    Logger.debug('eventlog subscriber: polling blockchain for new log events.');
+    Logger.debug('Web3.Refresh: polling blockchain for new log events.');
     let transactionsFound: number = 0;
 
     const options = {
@@ -76,14 +76,14 @@ export class Web3Service {
         }
       })
       .on('data', async log => {
-        Logger.debug('eventlog subscriber: new blockchain event found');
+        Logger.debug('Web3.Refresh: ekho event found');
         const blockNumber = log.blockNumber;
         const transactionHash = log.transactionHash;
 
         const decoded = this.web3.eth.abi.decodeParameters([this.BYTES], log.data);
         const ekho = Buffer.from(decoded[0].slice(2), this.HEX_ENCODING);
         const event = await this.createEventFromEkho(ekho);
-
+        Logger.debug(`Web3.Refresh: ekho event channel identifier ${event.channelIdentifier}`);
         let tx = await this.eventsService.getByTransactionHash(transactionHash);
         if (!tx) {
           tx = new EkhoEvent();
@@ -99,16 +99,16 @@ export class Web3Service {
 
         const dbEvent = await this.eventsService.getByTransactionHash(tx.txHash);
         if (!dbEvent) {
-          Logger.debug('eventlog subscriber: saving new event to db', tx.txHash);
           await this.eventsService.save(tx);
+          Logger.debug(`Web3.Refresh: ekho event saved to db`);
           transactionsFound++;
         }
       })
       .on('changed', log => {
-        Logger.debug(log);
+        Logger.debug(`Web3.Refresh: ${log}`);
       });
     Logger.debug(
-      `eventlog subscriber: subscribed and retrieved ${transactionsFound} new transactions from contract ${this.contractAddress} via ${this.rpcUrl}`,
+      `Web3.Refresh: retrieved ${transactionsFound} new transactions from contract ${this.contractAddress} via ${this.rpcUrl}`,
     );
   }
 
@@ -150,9 +150,9 @@ export class Web3Service {
   }
 
   async emitEkho(event?: EkhoEventDto): Promise<string> {
-    Logger.debug('... getting nonce');
+    Logger.debug(`Web3.emitEkho: getting nonce for ${event.channelIdentifier}`);
     const txCount = await this.getTransactionCount(this.address);
-    Logger.debug(`nonce: ${txCount}`);
+    Logger.debug(`Web3.emitEkho: nonce for ${event.channelIdentifier} is ${txCount}`);
 
     const bufferedPrivateKey = Buffer.from(this.privateKey, this.HEX_ENCODING);
 
@@ -164,7 +164,7 @@ export class Web3Service {
     if (event) {
       ekho = await this.createEkhoFromEvent(event);
     } else {
-      Logger.debug('emitting random data');
+      Logger.debug('Web3.emitEkho: emitting random data');
       ekho = require('crypto').randomBytes(118); // TODO: use cryptomodule for this
     }
 
@@ -189,7 +189,7 @@ export class Web3Service {
     const raw = '0x' + serializedTx.toString(this.HEX_ENCODING);
     let txHash: any;
     try {
-      Logger.debug('broadcasting transaction to chain');
+      Logger.debug('Web3.emitEkho: broadcasting transaction to chain');
 
       // squishing any unhandled promise exceptions...
       // so many try catches to cope with web3...
@@ -202,13 +202,13 @@ export class Web3Service {
       }
 
       if (txHash) {
-        Logger.debug('...transaction mined on chain: ', txHash.transactionHash);
+        Logger.debug(`Web3.emitEkho: broadcasted transaction to chain. tx: ${txHash.transactionHash}`);
         return txHash.transactionHash;
       } else {
-        throw new Error('error writing to chain');
+        throw new Error(`Web3.emitEkho: error writing to chain`);
       }
     } catch (e) {
-      Logger.debug('transaction failed: ', (e as Error).message);
+      Logger.debug(`Web3.emitEkho: transaction failed. ${e.message}`);
       throw e;
     }
   }
@@ -220,9 +220,6 @@ export class Web3Service {
     } catch (e) {
       return e;
     }
-    // return new Promise(async (resolve, reject) => {
-    //   this.web3.eth.getTransactionCount(account, (err, txCount) => (err ? reject(`${err}`) : resolve(txCount)));
-    // });
   }
 
   async sendSignerTransaction(raw: string): Promise<string> {
@@ -232,8 +229,5 @@ export class Web3Service {
     } catch (e) {
       throw e;
     }
-    // return new Promise(async (resolve, reject) => {
-    //   this.web3.eth.sendSignedTransaction(raw, (err, txHash) => (err ? reject(`${err}`) : resolve(txHash)));
-    // });
   }
 }
