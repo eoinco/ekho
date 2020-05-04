@@ -131,9 +131,7 @@ export class ChannelsService {
           } else {
             allMessagesRead = true;
             Logger.debug(
-              `Channel.Process: Finished processing.
-            ${processReport.receivedMessages} messages
-            received from ${channelMember.id}.`,
+              `Channel.Process: Done. ${processReport.receivedMessages} messages received from ${channelMember.id}.`,
             );
             Logger.debug('Channel.Process.End.');
             Logger.debug('----------------------------------------------');
