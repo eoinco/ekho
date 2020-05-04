@@ -8,7 +8,7 @@ import { Channel } from '../entities/channels.entity';
 export default class ChannelMemberDto {
   @Field(type => ID)
   @ApiProperty({ description: 'Channel member Id' })
-  id: number;
+  id: string;
 
   @Field()
   @ApiProperty({ description: 'Message Chain Key' })

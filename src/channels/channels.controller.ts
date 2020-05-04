@@ -43,7 +43,7 @@ export class ChannelsController {
   @UseGuards(JwtAuthGuard)
   @Get('refresh')
   async processEvents(@Query('userId') userId: string): Promise<ProcessReport> {
-    return this.channelService.process(userId);
+    return await this.channelService.process(userId);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -58,7 +58,7 @@ export class ChannelsController {
   @Get('broadcast/share')
   async getBroadcastChannelLink(
     @Query('userId') userId: string,
-    @Query('channelId') channelId: number,
+    @Query('channelId') channelId: string,
   ): Promise<BroadcastChannelLinkDto> {
     const link = this.channelService.getBroadcastChannelLink(userId, channelId);
     return link;
@@ -118,11 +118,13 @@ export class ChannelsController {
   @UseGuards(JwtAuthGuard)
   @ApiQuery({ name: 'userId', required: false })
   @ApiQuery({ name: 'contactId', required: false })
+  @ApiQuery({ name: 'channelId', required: false })
   @Get('message')
   async findChannelMessage(
     @Query('userId') userId?: string,
-    @Query('contactId') contactId?: number,
+    @Query('contactId') contactId?: string,
+    @Query('channelId') channelId?: string,
   ): Promise<ChannelMessage[]> {
-    return this.channelService.findChannelMessageByContactId(userId, contactId);
+    return this.channelService.findChannelMessages(userId, contactId, channelId);
   }
 }

@@ -30,6 +30,16 @@ describe('Happy Path (e2e)', () => {
   const bobId: string = '';
   const aliceToken: string = '';
   const bobToken: string = '';
+
+  let channelBobToAlice;
+  let channelAliceToBob;
+
+  let bobBroadcastChannel;
+  let aliceBroadcastChannel;
+
+  let bobAliceBroadcastListenerChannel;
+  let aliceBobBroadcastListenerChannel;
+
   let aliceContactFromBob;
   let bobContactFromAlice;
   let usersApi: UsersApi;
@@ -131,8 +141,6 @@ describe('Happy Path (e2e)', () => {
   });
 
   describe('channels - 1-to-1', () => {
-    let channelBobToAlice;
-    let channelAliceToBob;
     it('1) bob creates channel to alice', async () => {
       channelBobToAlice = await channelsApi.createChannel(
         'bob-to-alice',
@@ -187,9 +195,10 @@ describe('Happy Path (e2e)', () => {
     });
 
     it('4) bob reads 2 messages from alice', async () => {
-      const bobMessages: ChannelMessage[] = await channelsApi.getUserMessages(
+      const bobMessages: ChannelMessage[] = await channelsApi.getContactMessages(
         bob.id,
         aliceContactFromBob.id,
+        channelBobToAlice.id,
         this.bobToken,
       );
 
@@ -201,9 +210,10 @@ describe('Happy Path (e2e)', () => {
     });
 
     it('4) alice reads 2 messages from bob', async () => {
-      const aliceMessages: ChannelMessage[] = await channelsApi.getUserMessages(
+      const aliceMessages: ChannelMessage[] = await channelsApi.getContactMessages(
         alice.id,
         bobContactFromAlice.id,
+        channelAliceToBob.id,
         this.aliceToken,
       );
 
@@ -216,8 +226,6 @@ describe('Happy Path (e2e)', () => {
   });
 
   describe('channels - broadcast', () => {
-    let bobBroadcastChannel;
-    let aliceBroadcastChannel;
     it('1) bob creates broadcast channel', async () => {
       bobBroadcastChannel = await channelsApi.createBroadcastChannel('bob-broadcast', bob.id, this.bobToken);
     });
@@ -227,11 +235,19 @@ describe('Happy Path (e2e)', () => {
     });
 
     it('2) bob creates a broadcast listener to alices messages', async () => {
-      await channelsApi.followBroadcast(bob.id, aliceBroadcastChannel.broadcastLink, this.bobToken);
+      bobAliceBroadcastListenerChannel = await channelsApi.followBroadcast(
+        bob.id,
+        aliceBroadcastChannel.broadcastLink,
+        this.bobToken,
+      );
     });
 
     it('2) alice creates a broadcast listener to bobs messages', async () => {
-      await channelsApi.followBroadcast(alice.id, bobBroadcastChannel.broadcastLink, this.aliceToken);
+      aliceBobBroadcastListenerChannel = await channelsApi.followBroadcast(
+        alice.id,
+        bobBroadcastChannel.broadcastLink,
+        this.aliceToken,
+      );
     });
 
     it('3) bob broadcasts a message', async () => {
@@ -258,27 +274,29 @@ describe('Happy Path (e2e)', () => {
     });
 
     it('5) bob listens alices broadcast channel and reads its message', async () => {
-      const bobBroadcastMessages: ChannelMessage[] = await channelsApi.getUserMessages(
+      const bobBroadcastMessages: ChannelMessage[] = await channelsApi.getContactMessages(
         bob.id,
         aliceContactFromBob.id,
+        bobAliceBroadcastListenerChannel.id,
         this.bobToken,
       );
 
-      expect(bobBroadcastMessages.length).toBe(3);
-      expect(bobBroadcastMessages[2].nonce).toStrictEqual(1);
-      expect(bobBroadcastMessages[2].messageContents).toStrictEqual(`[${testId}] broadcast message #1 from Alice`);
+      expect(bobBroadcastMessages.length).toBe(1);
+      expect(bobBroadcastMessages[0].nonce).toStrictEqual(1);
+      expect(bobBroadcastMessages[0].messageContents).toStrictEqual(`[${testId}] broadcast message #1 from Alice`);
     });
 
     it('5) alice listens bobs broadcast channel and reads its message', async () => {
-      const aliceBroadcastMessages: ChannelMessage[] = await channelsApi.getUserMessages(
+      const aliceBroadcastMessages: ChannelMessage[] = await channelsApi.getContactMessages(
         alice.id,
         bobContactFromAlice.id,
+        aliceBobBroadcastListenerChannel.id,
         this.aliceToken,
       );
 
-      expect(aliceBroadcastMessages.length).toBe(3);
-      expect(aliceBroadcastMessages[2].nonce).toStrictEqual(1);
-      expect(aliceBroadcastMessages[2].messageContents).toStrictEqual(`[${testId}] broadcast message #1 from Bob`);
+      expect(aliceBroadcastMessages.length).toBe(1);
+      expect(aliceBroadcastMessages[0].nonce).toStrictEqual(1);
+      expect(aliceBroadcastMessages[0].messageContents).toStrictEqual(`[${testId}] broadcast message #1 from Bob`);
     });
   });
   afterAll(async () => {

@@ -15,7 +15,7 @@ export class ChannelsApi {
     return response.body;
   }
 
-  async createChannelMessage(message: string, userId: string, channelId: number, token: string) {
+  async createChannelMessage(message: string, userId: string, channelId: string, token: string) {
     const response = await supertest
       .agent(this.app.getHttpServer())
       .post('/channels/message')
@@ -38,6 +38,15 @@ export class ChannelsApi {
     const response = await supertest
       .agent(this.app.getHttpServer())
       .get(`/channels/message?userId=${userId}&contactId=${contactId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    return response.body;
+  }
+
+  async getContactMessages(userId, contactId, channelId, token: string) {
+    const response = await supertest
+      .agent(this.app.getHttpServer())
+      .get(`/channels/message?userId=${userId}&contactId=${contactId}&channelId=${channelId}`)
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
     return response.body;

@@ -12,15 +12,15 @@ export class EventsService {
   ) {}
 
   async getAll(): Promise<EkhoEvent[]> {
-    return this.eventsRepository.find();
+    return await this.eventsRepository.find();
   }
 
   async getOneById(id: number): Promise<EkhoEvent> {
-    return this.eventsRepository.findOneOrFail({ id });
+    return await this.eventsRepository.findOneOrFail({ id });
   }
 
   async getTransactionByChannelId(channelId: string): Promise<EkhoEvent> {
-    return this.eventsRepository.findOne({ where: { channelId } });
+    return await this.eventsRepository.findOne({ where: { channelId } });
   }
 
   async getByTransactionHash(transactionHash: string): Promise<EkhoEvent> {

@@ -52,7 +52,7 @@ export class ContactsService {
     return this.contactsRepository.find({ relations: ['user'] });
   }
 
-  async findOneContact(userId: string, contactId: number): Promise<Contact> {
+  async findOneContact(userId: string, contactId: string): Promise<Contact> {
     return this.contactsRepository.findOneOrFail({
       where: { id: contactId, user: userId },
     });

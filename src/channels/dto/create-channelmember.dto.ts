@@ -8,7 +8,7 @@ export default class CreateChannelMemberDto {
   messageChainKey: string;
 
   @ApiProperty({ description: 'Channel identifier' })
-  channelId: number;
+  channelId: string;
 
   @Field()
   @ApiProperty({ description: 'User identifier' })
@@ -16,5 +16,5 @@ export default class CreateChannelMemberDto {
 
   @Field()
   @ApiProperty({ description: 'Contact identifier' })
-  contactId: number;
+  contactId: string;
 }

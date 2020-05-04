@@ -1,4 +1,5 @@
 import { Controller, Get, Inject, Logger, Param, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ContactsService } from '../contacts/contacts.service';
 import { CryptographyService } from '../cryptography/cryptography.service';
@@ -6,6 +7,7 @@ import { KeyManager } from '../key-manager/key-manager.interface';
 import { User } from '../users/entities/users.entity';
 import { UsersService } from '../users/users.service';
 
+@ApiBearerAuth()
 @Controller('development')
 export class DevelopmentController {
   constructor(

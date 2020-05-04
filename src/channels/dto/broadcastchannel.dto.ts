@@ -7,7 +7,7 @@ import BroadcastChannelLinkDto from './link-broadcastchannel.dto';
   @ApiProperty({ description: 'Channel creator' })
   userId: string;
   @ApiProperty({ description: 'Channel id' })
-  channelId: number;
+  channelId: string;
   @ApiProperty({ description: 'Broadcast key' })
   broadcastKey: string;
 }*/
@@ -16,7 +16,7 @@ export default class BroadcastChannelDto {
   @ApiProperty({ description: 'Channel creator' })
   userId: string;
   @ApiProperty({ description: 'Channel id' })
-  channelId: number;
+  channelId: string;
   @ApiProperty({ description: 'Broadcast link' })
   broadcastLink: BroadcastChannelLinkDto;
 }

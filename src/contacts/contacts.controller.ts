@@ -1,10 +1,12 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Contact } from './contacts.entity';
 import { ContactsService } from './contacts.service';
 import ContactHandshakeDto from './dto/contact-handshake.dto';
 import ContactDto from './dto/contact.dto';
 
+@ApiBearerAuth()
 @Controller('contacts')
 export class ContactsController {
   constructor(private readonly contactsService: ContactsService) {}
@@ -17,7 +19,7 @@ export class ContactsController {
 
   @UseGuards(JwtAuthGuard)
   @Get(':userId/:contactId')
-  async findContactByUser(@Param('userId') userId: string, @Param('contactId') contactId: number): Promise<Contact> {
+  async findContactByUser(@Param('userId') userId: string, @Param('contactId') contactId: string): Promise<Contact> {
     return this.contactsService.findOneContact(userId, contactId);
   }
 

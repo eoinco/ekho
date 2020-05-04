@@ -73,50 +73,78 @@ export class ChannelsService {
   // go onto next channel member
 
   async process(userId: string): Promise<ProcessReport> {
-    const processReport = new ProcessReport();
-    processReport.receivedMessages = 0;
-    processReport.processedTotal = 0;
-    processReport.receivedMessageEvents = [];
+    try {
+      Logger.debug('++++++++++++++++++++++++++++++++++++++++++++++');
+      Logger.debug(`Channel.Process: Starting Processing for userid: ${userId}`);
+      const processReport = new ProcessReport();
+      processReport.receivedMessages = 0;
+      processReport.processedTotal = 0;
+      processReport.receivedMessageEvents = [];
 
-    const channelMembersByUser = await this.findChannelMembersByUser(userId);
+      const channelMembersByUser = await this.findChannelMembersByUser(userId);
 
-    for (const channelMember of channelMembersByUser) {
-      let nextChannelIdentifier = channelMember.nextChannelIdentifier;
-      Logger.debug('channel member,', nextChannelIdentifier);
+      for (const channelMember of channelMembersByUser) {
+        let nextChannelIdentifier = channelMember.nextChannelIdentifier;
+        Logger.debug(
+          `Channel.Process: Processing channel member: ${channelMember.id} with expected Channel Identifier ${nextChannelIdentifier}`,
+        );
 
-      let allMessagesRead: boolean = false;
+        let allMessagesRead: boolean = false;
 
-      while (!allMessagesRead) {
-        // check if we have an event for that channel member
-        const newEvent: EkhoEvent = await this.eventService.getTransactionByChannelId(nextChannelIdentifier);
+        while (!allMessagesRead) {
+          // check if we have an event for that channel member
+          const newEvent: EkhoEvent = await this.eventService.getTransactionByChannelId(nextChannelIdentifier);
 
-        // if we have an event, process it
-        if (newEvent) {
-          Logger.debug('event found: ', newEvent.txHash);
+          // if we have an event, process it
+          if (newEvent) {
+            Logger.debug(`Channel.Process: event found for channelIdentifier ${nextChannelIdentifier}`);
 
-          const incomingMessage = new EncodedMessageDto();
-          incomingMessage.channelIdentifier = newEvent.channelId;
-          incomingMessage.encryptedMessageLink = newEvent.content;
-          incomingMessage.encryptedMessageLinkSignature = newEvent.signature;
+            const incomingMessage = new EncodedMessageDto();
+            incomingMessage.channelIdentifier = newEvent.channelId;
+            incomingMessage.encryptedMessageLink = newEvent.content;
+            incomingMessage.encryptedMessageLinkSignature = newEvent.signature;
 
-          try {
-            const message: RawMessageDto = await this.validateAndDecryptEvent(newEvent, incomingMessage);
-            if (message) {
-              processReport.receivedMessages++;
-              processReport.receivedMessageEvents.push(incomingMessage);
-              nextChannelIdentifier = await (await this.findChannelMemberById(channelMember.id)).nextChannelIdentifier;
+            try {
+              const message: RawMessageDto = await this.validateAndDecryptEvent(newEvent, incomingMessage);
+              if (message) {
+                Logger.debug(
+                  `Channel.Process: Decoded message from ${channelMember.id} with Channel Identifier ${nextChannelIdentifier}`,
+                );
+                processReport.receivedMessages++;
+                processReport.receivedMessageEvents.push(incomingMessage);
+                nextChannelIdentifier = await (await this.findChannelMemberById(channelMember.id))
+                  .nextChannelIdentifier;
+                Logger.debug(
+                  `Channel.Process: next expected Channel Identifier from ${channelMember.id} is ${nextChannelIdentifier}`,
+                );
+              }
+            } catch (e) {
+              Logger.debug(
+                `Channel.Process: event ${newEvent.txHash.toString()} could not be decoded (possible collision).`,
+              );
+            } finally {
+              processReport.processedTotal++;
+              Logger.debug(
+                `Channel.Process: ${processReport.receivedMessages} messages processed from ${channelMember.id}`,
+              );
             }
-          } catch (e) {
-            Logger.debug('Event could not be decoded', newEvent.txHash.toString());
-          } finally {
-            processReport.processedTotal++;
+          } else {
+            allMessagesRead = true;
+            Logger.debug(
+              `Channel.Process: Finished processing.
+            ${processReport.receivedMessages} messages
+            received from ${channelMember.id}.`,
+            );
+            Logger.debug('Channel.Process.End.');
+            Logger.debug('----------------------------------------------');
           }
-        } else {
-          allMessagesRead = true;
         }
       }
+      return processReport;
+    } catch (err) {
+      Logger.debug(`Channel.Process.Error: ${err.message}`);
+      throw err;
     }
-    return processReport;
   }
 
   async processAllPendingEvents(): Promise<ProcessReport> {
@@ -251,7 +279,7 @@ export class ChannelsService {
     }
   }
 
-  async getBroadcastChannelLink(userId: string, channelId: number): Promise<BroadcastChannelLinkDto> {
+  async getBroadcastChannelLink(userId: string, channelId: string): Promise<BroadcastChannelLinkDto> {
     await this.userService.findById(userId);
 
     const broadcastChannel = await this.broadcastChannelRepository.findOneOrFail({
@@ -351,7 +379,7 @@ export class ChannelsService {
 
   // Get a specified user's broadcast channels
   async getBroadcastChannels(userId: string): Promise<BroadcastChannel[]> {
-    return this.broadcastChannelRepository.find({
+    return await this.broadcastChannelRepository.find({
       relations: ['channel', 'user'],
       where: { user: userId },
     });
@@ -426,7 +454,7 @@ export class ChannelsService {
       await transactionalEntityManager.save(contactChannelMember);
     });
 
-    Logger.debug('channel and members created ', newChannel.id.toString());
+    Logger.debug('channel and members created ', newChannel.id);
 
     // 8. return the saved channel
     return await this.findChannelById(newChannel.id);
@@ -456,43 +484,61 @@ export class ChannelsService {
   }
 
   // Finds a channelmessage  by id (TODO: for user id)
-  async findChannelMessageByContactId(userId: string, contactId: number): Promise<ChannelMessage[]> {
+  async findChannelMessageByContactId(userId: string, contactId: string): Promise<ChannelMessage[]> {
     const allMessages = await this.channelMessageRepository.find({
       relations: ['channelMember', 'channelMember.contact'],
-      // TODO filter for only contacts belonging to that user!
-      // where: { channelMember.contact.user: userId }
-      // missing where clause - see above findChannelMessageByUserId
-      order: { id: 'ASC' },
+      where: { 'channelMember.contact.user': userId, 'channelMember.contact': contactId },
+      order: { nonce: 'ASC' },
     });
     // see above findChannelMessageByUserId
-    return allMessages.filter(m => m.channelMember.contact?.id === parseInt(`${contactId}`, 10));
+    const messages = await allMessages.filter(m => m.channelMember.contact?.id === contactId);
+    return messages;
+  }
+
+  // Finds a channelmessage  by id (TODO: for user id)
+  async findChannelMessages(userId: string, contactId: string, channelId: string): Promise<ChannelMessage[]> {
+    const allMessages = await this.channelMessageRepository.find({
+      relations: ['channelMember', 'channelMember.contact', 'channelMember.channel'],
+      where: { 'channelMember.contact.user': userId },
+      order: { nonce: 'ASC' },
+    });
+    let filteredMessages = allMessages;
+    if (contactId) {
+      filteredMessages = await filteredMessages.filter(m => m.channelMember.contact?.id === contactId);
+    }
+
+    if (channelId) {
+      filteredMessages = await filteredMessages.filter(m => m.channelMember.channel.id === channelId);
+    }
+
+    return filteredMessages;
   }
 
   // Finds all channel messages (TODO: for user id)
   async findAllChannelMessages(): Promise<ChannelMessage[]> {
-    return this.channelMessageRepository.find({ relations: ['channelMember'] });
+    return await this.channelMessageRepository.find({ relations: ['channelMember'] });
   }
 
   // *** (CHANNEL MEMBER) Find methods ***
 
   // Finds channel member by id (TODO: for user id)
-  async findChannelMemberById(id: number): Promise<ChannelMember> {
-    return this.channelMemberRepository.findOneOrFail({
+  async findChannelMemberById(channelMemberId: string): Promise<ChannelMember> {
+    return await this.channelMemberRepository.findOneOrFail({
       relations: ['channel', 'contact', 'user'],
-      where: { id },
+      where: { id: channelMemberId },
     });
   }
 
   // Finds all records based on search criteria (TODO: for user id)
   async findAllChannelMembers(): Promise<ChannelMember[]> {
-    return this.channelMemberRepository.find({
+    return await this.channelMemberRepository.find({
       relations: ['channel', 'contact', 'user'],
     });
   }
 
   // Finds channel member by userid and channelid
-  async findChannelMemberByUserAndChannel(userId: string, channelId: number): Promise<ChannelMember> {
-    return this.channelMemberRepository.findOneOrFail({
+  async findChannelMemberByUserAndChannel(userId: string, channelId: string): Promise<ChannelMember> {
+    return await this.channelMemberRepository.findOneOrFail({
       relations: ['channel', 'contact', 'user'],
       where: { channel: channelId, user: userId },
     });
@@ -511,8 +557,8 @@ export class ChannelsService {
   // *** Channel FIND Methods ***
 
   // Finds a channel by its channel id (TODO: for user id)
-  async findChannelById(id: number): Promise<Channel> {
-    return this.channelRepository.findOneOrFail({
+  async findChannelById(id: string): Promise<Channel> {
+    return await this.channelRepository.findOneOrFail({
       relations: ['channelmembers'],
       where: { id },
     });
@@ -520,7 +566,7 @@ export class ChannelsService {
 
   // Finds all channels (TODO: for user id)
   async findAllChannels(): Promise<Channel[]> {
-    return this.channelRepository.find({ relations: ['channelmembers'] });
+    return await this.channelRepository.find({ relations: ['channelmembers'] });
   }
 
   // *** Private methods ***
@@ -530,7 +576,7 @@ export class ChannelsService {
     messageEvent: EkhoEvent,
     channelMessage: EncodedMessageDto,
   ): Promise<RawMessageDto> {
-    Logger.debug('validating and decrypting event');
+    Logger.debug(`Channel.ValidateAndDecryptEvent: validating and decrypting event ${messageEvent.channelId}`);
 
     // break up the message into its parts
     const channelIdentifier = channelMessage.channelIdentifier;
@@ -541,7 +587,7 @@ export class ChannelsService {
     const potentialChannelMembers = await this.findChannelMemberbyNextChannelIdentifier(channelIdentifier);
 
     for (const channelMember of potentialChannelMembers) {
-      Logger.debug('found potential message from channel member ', channelMember.id.toString());
+      Logger.debug(`Channel.ValidateAndDecryptEvent: found potential message from channel member ${channelMember.id}`);
 
       // get the message key
       const messageKey = await this.getMessageKey(channelMember.messageChainKey);
@@ -556,16 +602,16 @@ export class ChannelsService {
       const EMLwithNonce = this.cryptoService.hash(encryptedMessageLink + nonce.toString());
 
       // check the signature
-      const signed = this.keyManager.verifySignature(
+      const signed = await this.keyManager.verifySignature(
         decryptedSignature,
         EMLwithNonce,
         channelMember.contact.signingKey,
       );
 
       if (!signed) {
-        throw new BadRequestException('message not correctly signed');
+        throw new BadRequestException(`Channel.ValidateAndDecryptEvent: message not correctly signed`);
       } else {
-        Logger.debug('signature valid');
+        Logger.debug(`Channel.ValidateAndDecryptEvent: signature valid for ${messageEvent.channelId}`);
 
         // get the raw message
         const rawMessage = await this.getRawMessage(encryptedMessageLink, nonce, messageKey);
@@ -579,17 +625,17 @@ export class ChannelsService {
         // update the channel member
         const updatedChannelMember = await this.updateChannelMemberDetails(channelMember, nonce);
 
-        Logger.debug('saving message to database');
+        Logger.debug(`Channel.ValidateAndDecryptEvent: saving message ${messageEvent.txHash} to database`);
         // update the db
         await getManager().transaction(async transactionalEntityManager => {
           await transactionalEntityManager.save(newChannelMessage);
           await transactionalEntityManager.save(updatedChannelMember);
         });
-
+        Logger.debug(`Channel.ValidateAndDecryptEvent: saved message ${messageEvent.txHash} to database`);
         // output the raw message
         const rawMessageContents = new RawMessageDto();
         rawMessageContents.messageContents = newChannelMessage.messageContents;
-
+        Logger.debug(`Channel.ValidateAndDecryptEvent: returning raw message. Finished Decrypting and Validating.`);
         return rawMessageContents;
       }
     }
@@ -695,21 +741,23 @@ export class ChannelsService {
   }
 
   // Gets the current expected nonce for a channel member
-  private async getExpectedMessageNonceByChannelMemberId(id: number): Promise<number> {
-    Logger.debug('getting expected nonce for channel member ', id.toString());
+  private async getExpectedMessageNonceByChannelMemberId(channelMemberId: string): Promise<number> {
+    Logger.debug(
+      `Channel.getExpectedMessageNonceByChannelMemberId: getting expected nonce for channel member ${channelMemberId}`,
+    );
 
     const latestChannelMessage = await getRepository(ChannelMessage)
       .createQueryBuilder('ChannelMessage')
       .select('MAX(ChannelMessage.nonce)', 'maxnonce')
-      .where('"ChannelMessage"."channelMemberId" = :id', { id })
+      .where('"ChannelMessage"."channelMemberId" = :channelMemberId', { channelMemberId })
       .groupBy('"ChannelMessage"."channelMemberId"')
       .getRawOne();
 
     if (latestChannelMessage) {
+      Logger.debug(`Channel.getExpectedMessageNonceByChannelMemberId: messages found, returning nonce`);
       return latestChannelMessage.maxnonce + 1;
     } else {
-      Logger.debug('no messages found, getting default nonce');
-
+      Logger.debug(`Channel.getExpectedMessageNonceByChannelMemberId: no messages found, getting default nonce`);
       // we have no messages, no next message will be nonce 1
       return 1;
     }
@@ -717,28 +765,36 @@ export class ChannelsService {
 
   // finds a contact channel member (if any) for a provided channel identifier
   private async findChannelMemberbyNextChannelIdentifier(identifier: string): Promise<ChannelMember[]> {
-    Logger.debug('searching for channel member...');
+    Logger.debug(
+      `Channel.findChannelMemberbyNextChannelIdentifier: searching for channel member with nextCID ${identifier}`,
+    );
 
-    return this.channelMemberRepository.find({
+    const channelMembers = await this.channelMemberRepository.find({
       relations: ['user', 'contact', 'channel'],
       where: { contactId: !IsNull(), userId: IsNull(), nextChannelIdentifier: identifier },
     });
+
+    Logger.debug(`Channel.findChannelMemberbyNextChannelIdentifier: found ${channelMembers.length} members`);
+    return channelMembers;
   }
 
   // ratchets the message chain key to get the message key
   private async getMessageKey(messageChainKey: string): Promise<string> {
-    Logger.debug('getting message key');
+    Logger.debug('Channel.getMessageKey: getting message key from chain key');
 
-    return this.cryptoService.hash(messageChainKey + this.MESSAGE_KEY_RATCHET);
+    const messageKey = this.cryptoService.hash(messageChainKey + this.MESSAGE_KEY_RATCHET);
+    Logger.debug('Channel.getMessageKey: returning message key');
+    return messageKey;
   }
 
   // returns the raw data (string for moment) from an encrypted IPFS link
   private async getRawMessage(encryptedLink: string, nonce: number, key: string): Promise<string> {
-    Logger.debug('getting IPFS address');
+    Logger.debug('Channel.getRawMessage: getting IPFS address');
 
     const rawMessageLink = this.cryptoService.decrypt(encryptedLink, nonce, key, this.BASE_64, this.UTF_8);
     const rawMessageEncrypted = (await this.ipfsService.retrieve(rawMessageLink)).content;
     const rawMessage = this.cryptoService.decrypt(rawMessageEncrypted, nonce, key, this.BASE_64, this.UTF_8);
+    Logger.debug('Channel.getRawMessage: returning IPFS address');
     return rawMessage;
   }
 
@@ -751,7 +807,7 @@ export class ChannelsService {
 
   // updates the channel member's next channel identifier
   private async updateChannelMemberDetails(member: ChannelMember, nonce: number): Promise<ChannelMember> {
-    Logger.debug('updating channel member ', member.id.toString());
+    Logger.debug(`Channel.updateChannelMemberDetails: updating channel member ${member.id} chain key`);
 
     member.messageChainKey = await this.ratchetChainKey(member.messageChainKey);
     member.nextChannelIdentifier = await this.createChannelIdentifier(
@@ -759,17 +815,19 @@ export class ChannelsService {
       member.channel.channelKey,
       nonce + 1,
     );
+    Logger.debug(`Channel.updateChannelMemberDetails: updated channel member ${member.id} chain key`);
     return member;
   }
 
   // create a channel message entity
   private async createMessage(member: ChannelMember, message: string, nonce: number): Promise<ChannelMessage> {
-    Logger.debug('creating channel message');
+    Logger.debug('Channel.CreateMessage: creating channel message');
 
     const channelMessage = new ChannelMessage();
     channelMessage.channelMember = member;
     channelMessage.messageContents = message;
     channelMessage.nonce = nonce;
+    Logger.debug('Channel.CreateMessage: created channel message');
     return channelMessage;
   }
 
@@ -814,7 +872,7 @@ export class ChannelsService {
    * Finds all channel member records for a given contact id
    * @param id contact id
    */
-  async findAllChannelMembersByContactId(id: number): Promise<ChannelMember[]> {
+  async findAllChannelMembersByContactId(id: string): Promise<ChannelMember[]> {
     return this.channelMemberRepository.find({
       where: { contactId: id },
     });
@@ -836,7 +894,7 @@ export class ChannelsService {
    * @param id channel id
    * @returns ChannelMember[] array of channel members in the channel
    */
-  async findAllChannelMembersByChannelId(id: number): Promise<ChannelMember[]> {
+  async findAllChannelMembersByChannelId(id: string): Promise<ChannelMember[]> {
     return this.channelMemberRepository.find({
       where: { channelId: id },
     });

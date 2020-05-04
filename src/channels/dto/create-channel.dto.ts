@@ -8,6 +8,6 @@ export default class CreateChannelDto {
   name: string;
   @ApiProperty({ description: 'Channel creator' })
   userId: string;
-  @ApiProperty({ description: 'Contact name' })
-  contactId: number;
+  @ApiProperty({ description: 'Contact Id' })
+  contactId: string;
 }

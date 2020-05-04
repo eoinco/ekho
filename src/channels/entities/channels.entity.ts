@@ -6,8 +6,8 @@ import { ChannelMember } from './channelmembers.entity';
 @ObjectType()
 export class Channel {
   @Field(type => ID)
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Field()
   @Column()
