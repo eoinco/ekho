@@ -12,7 +12,6 @@ import fileManagerConfiguration from './file-manager/file-manager.configuration'
 import keyManagerConfiguration from './key-manager/key-manager.configuration';
 import { KeyManagerModule } from './key-manager/key-manager.module';
 import { UsersModule } from './users/users.module';
-import web3Configuration from './web3/web3.configuration';
 
 @Module({
   imports: [
@@ -24,7 +23,7 @@ import web3Configuration from './web3/web3.configuration';
     TypeOrmModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [chainManagerConfiguration, keyManagerConfiguration, fileManagerConfiguration, web3Configuration],
+      load: [chainManagerConfiguration, keyManagerConfiguration, fileManagerConfiguration],
     }),
     UsersModule,
     ContactsModule,

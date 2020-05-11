@@ -16,8 +16,6 @@ import fileManagerConfiguration from '../src/file-manager/file-manager.configura
 import { FileManagerModule } from '../src/file-manager/file-manager.module';
 import keyManagerConfiguration from '../src/key-manager/key-manager.configuration';
 import UserDto from '../src/users/dto/user.dto';
-import web3Configuration from '../src/web3/web3.configuration';
-import { Web3Module } from '../src/web3/web3.module';
 import { ChannelsApi } from './api/ChannelsApi';
 import { ContactsApi } from './api/ContactsApi';
 import { TokensApi } from './api/TokensApi';
@@ -57,13 +55,12 @@ describe('Happy Path (e2e)', () => {
         DevelopmentModule,
         ContactsModule,
         ChannelsModule,
-        Web3Module,
         FileManagerModule,
         ChainManagerModule,
         TypeOrmModule.forRoot({ keepConnectionAlive: true }),
         ConfigModule.forRoot({
           isGlobal: true,
-          load: [fileManagerConfiguration, web3Configuration, keyManagerConfiguration, chainManagerConfiguration],
+          load: [fileManagerConfiguration, keyManagerConfiguration, chainManagerConfiguration],
         }),
       ],
     }).compile();

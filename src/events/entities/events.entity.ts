@@ -27,9 +27,6 @@ export class EkhoEvent {
   @Column({ nullable: true })
   block: number;
 
-  @Column({ nullable: false })
-  processed: boolean;
-
   @OneToMany(
     type => ChannelMessage,
     channelmessage => channelmessage.ekhoEvent,

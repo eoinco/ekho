@@ -71,18 +71,12 @@ export class InfuraChainManager implements ChainManager {
         let tx = await this.eventService.getByTransactionHash(transactionHash);
         if (!tx) {
           tx = new EkhoEvent();
-        }
-
-        tx.channelId = event.channelIdentifier;
-        tx.content = event.encryptedMessageLink;
-        tx.signature = event.encryptedMessageLinkSignature;
-        tx.txHash = transactionHash;
-        tx.status = 'mined'; // TODO: change to ENUM
-        tx.block = blockNumber;
-        tx.processed = false;
-
-        const dbEvent = await this.eventService.getByTransactionHash(tx.txHash);
-        if (!dbEvent) {
+          tx.channelId = event.channelIdentifier;
+          tx.content = event.encryptedMessageLink;
+          tx.signature = event.encryptedMessageLinkSignature;
+          tx.txHash = transactionHash;
+          tx.status = 'mined'; // TODO: change to ENUM
+          tx.block = blockNumber;
           await this.eventService.save(tx);
           Logger.debug(`Web3.Refresh: ekho event saved to db`);
           transactionsFound++;

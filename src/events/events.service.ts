@@ -81,7 +81,6 @@ export class EventsService {
     Logger.debug('marking event as processed.  id: ', id.toString());
 
     const myEvent = await this.getOneById(id);
-    myEvent.processed = true;
     await this.save(myEvent);
     return true;
   }

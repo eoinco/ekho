@@ -11,7 +11,6 @@ var anonEvent: EkhoEvent = {
   content: 'lalala',
   signature: 'Made in Ireland',
   block: 1,
-  processed: false,
   channelmessages: null,
 };
 

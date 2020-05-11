@@ -9,7 +9,6 @@ import { FileManagerModule } from '../file-manager/file-manager.module';
 import { KeyManagerModule } from '../key-manager/key-manager.module';
 import { User } from '../users/entities/users.entity';
 import { UsersModule } from '../users/users.module';
-import { Web3Module } from '../web3/web3.module';
 import { ChannelsController } from './channels.controller';
 import { ChannelsService } from './channels.service';
 import { BroadcastChannel } from './entities/broadcastchannels.entity';
@@ -27,7 +26,6 @@ import { ChannelMembersResolver } from './resolvers/channelmembers.resolver';
     ContactsModule,
     FileManagerModule,
     ChainManagerModule,
-    Web3Module,
     EventsModule,
     KeyManagerModule,
   ],
