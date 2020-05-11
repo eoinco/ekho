@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import IpfsClient from 'ipfs-http-client';
-import { IpfsMessageDto } from './dto/ipfs-message.dto';
+import { FileManager } from '../file-manager.interface';
 
 @Injectable()
-export class IpfsService {
+export class IpfsFileManager implements FileManager {
   constructor(private readonly ipfs: IpfsClient) {}
 
   /**
@@ -11,7 +11,7 @@ export class IpfsService {
    * https://github.com/ipfs/interface-js-ipfs-core/blob/master/SPEC/FILES.md#get
    * @param ipfsPath IPFS Path
    */
-  async retrieve(ipfsPath: string): Promise<IpfsMessageDto> {
+  async retrieve(ipfsPath: string): Promise<string> {
     try {
       Logger.debug(`Ipfs.retrieve: getting ${ipfsPath} from IPFS`);
       const [file] = await this.ipfs.get(ipfsPath);
@@ -27,12 +27,17 @@ export class IpfsService {
    * https://github.com/ipfs/interface-js-ipfs-core/blob/master/SPEC/FILES.md#add
    * @param data data message to be added to IPFS
    */
-  async store(data: IpfsMessageDto): Promise<string> {
+  async store(data: string): Promise<string> {
     // this will perform badly with huge messages
     // check later how to use streams
     const stringData = JSON.stringify(data);
     const bufferedData = Buffer.from(stringData, 'utf-8');
-    const [result] = await this.ipfs.add(bufferedData);
+    let result;
+    try {
+      [result] = await this.ipfs.add(bufferedData);
+    } catch (err) {
+      Logger.debug(`IPFSFileManager.store: error: ${err.message}`);
+    }
     if (result) {
       Logger.debug(`Ipfs.store: file ${result.path} shared via IPFS`);
       return result.path;

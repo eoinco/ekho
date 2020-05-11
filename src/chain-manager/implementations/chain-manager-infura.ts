@@ -3,25 +3,14 @@ import { ConfigService } from '@nestjs/config';
 import { Transaction as Tx } from 'ethereumjs-tx';
 import { bufferToHex } from 'ethereumjs-util';
 import Web3 from 'web3';
-import EkhoEventDto from '../events/dto/ekhoevent.dto';
-import { EkhoEvent } from '../events/entities/events.entity';
-import { EventsService } from '../events/events.service';
-import { Web3Constants } from './web3.constants';
+import EkhoEventDto from '../../events/dto/ekhoevent.dto';
+import { EkhoEvent } from '../../events/entities/events.entity';
+import { EventsService } from '../../events/events.service';
+import { ChainManager } from '../chain-manager.interface';
+import { Web3Constants } from './web3/web3.constants';
 
 @Injectable()
-export class Web3Service {
-  /**
-   * For test purposes, the ekho contract is deployed on Rinkeby: 0x31c65059b5EA5D77DA382bF963785aC261853B4b
-   *
-   * pragma solidity >=0.4.22 <0.6.0;
-   * contract ekho {
-   *     event ekho(bytes message);
-   *     function broadcast(bytes memory message) public {
-   *         emit ekho(message);
-   *     }
-   * }
-   */
-
+export class InfuraChainManager implements ChainManager {
   private readonly chain;
   private readonly hardfork;
   private readonly rpcUrl;
@@ -37,9 +26,9 @@ export class Web3Service {
   private readonly SIGNATURE_BYTES = 64;
 
   constructor(
-    private readonly eventsService: EventsService,
     private readonly configService: ConfigService,
     private readonly web3: Web3,
+    private readonly eventService: EventsService,
   ) {
     this.chain = this.configService.get<string>('web3.chain');
     this.hardfork = this.configService.get<string>('web3.hardfork');
@@ -52,10 +41,10 @@ export class Web3Service {
   }
 
   async onModuleInit(): Promise<void> {
-    await this.Refresh();
+    await this.listen();
   }
 
-  async Refresh(): Promise<void> {
+  async listen(): Promise<void> {
     Logger.debug('Web3.Refresh: polling blockchain for new log events.');
     let transactionsFound: number = 0;
 
@@ -77,9 +66,9 @@ export class Web3Service {
 
         const decoded = this.web3.eth.abi.decodeParameters([this.BYTES], log.data);
         const ekho = Buffer.from(decoded[0].slice(2), this.HEX_ENCODING);
-        const event = await this.createEventFromEkho(ekho);
+        const event = await this.eventService.createEventFromEkho(ekho);
         Logger.debug(`Web3.Refresh: ekho event channel identifier ${event.channelIdentifier}`);
-        let tx = await this.eventsService.getByTransactionHash(transactionHash);
+        let tx = await this.eventService.getByTransactionHash(transactionHash);
         if (!tx) {
           tx = new EkhoEvent();
         }
@@ -92,9 +81,9 @@ export class Web3Service {
         tx.block = blockNumber;
         tx.processed = false;
 
-        const dbEvent = await this.eventsService.getByTransactionHash(tx.txHash);
+        const dbEvent = await this.eventService.getByTransactionHash(tx.txHash);
         if (!dbEvent) {
-          await this.eventsService.save(tx);
+          await this.eventService.save(tx);
           Logger.debug(`Web3.Refresh: ekho event saved to db`);
           transactionsFound++;
         }
@@ -105,43 +94,6 @@ export class Web3Service {
     Logger.debug(
       `Web3.Refresh: retrieved ${transactionsFound} new transactions from contract ${this.contractAddress} via ${this.rpcUrl}`,
     );
-  }
-
-  async generateStringContractData(channelId: string, content: string, signature: string): Promise<any> {
-    const contract = new this.web3.eth.Contract(Web3Constants.abi as any, this.contractAddress);
-
-    const data = contract.methods
-      .notify(Web3.utils.fromAscii(channelId), Web3.utils.fromAscii(content), Web3.utils.fromAscii(signature))
-      .encodeABI();
-
-    return data;
-  }
-
-  // creates the binary data to store on-chain from an ekho event dto
-  async createEkhoFromEvent(event: EkhoEventDto): Promise<Buffer> {
-    const temp: Buffer[] = [];
-
-    temp[0] = Buffer.from(event.channelIdentifier, this.BASE_64);
-    temp[1] = Buffer.from(event.encryptedMessageLink, this.BASE_64);
-    temp[2] = Buffer.from(event.encryptedMessageLinkSignature, this.BASE_64);
-    const ekho: Buffer = Buffer.concat(temp);
-
-    return ekho;
-  }
-
-  // creates an ekho event dto from the binary data stored on chain
-  async createEventFromEkho(ekho: Buffer): Promise<EkhoEventDto> {
-    const event = new EkhoEventDto();
-
-    event.channelIdentifier = Buffer.from(ekho.slice(0, this.CHANNEL_ID_BYTES)).toString(this.BASE_64);
-    event.encryptedMessageLink = Buffer.from(
-      ekho.slice(this.CHANNEL_ID_BYTES, ekho.length - this.SIGNATURE_BYTES),
-    ).toString(this.BASE_64);
-    event.encryptedMessageLinkSignature = Buffer.from(
-      ekho.slice(ekho.length - this.SIGNATURE_BYTES, ekho.length),
-    ).toString(this.BASE_64);
-
-    return event;
   }
 
   async emitEkho(event?: EkhoEventDto): Promise<string> {
@@ -157,7 +109,7 @@ export class Web3Service {
 
     // create random data if we haven't received an event
     if (event) {
-      ekho = await this.createEkhoFromEvent(event);
+      ekho = await this.eventService.createEkhoFromEvent(event);
     } else {
       Logger.debug('Web3.emitEkho: emitting random data');
       ekho = require('crypto').randomBytes(118); // TODO: use cryptomodule for this
@@ -214,15 +166,6 @@ export class Web3Service {
       return txCount;
     } catch (e) {
       return e;
-    }
-  }
-
-  async sendSignerTransaction(raw: string): Promise<string> {
-    try {
-      const txHash = await this.web3.eth.sendSignedTransaction(raw);
-      return txHash.transactionHash;
-    } catch (e) {
-      throw e;
     }
   }
 }

@@ -1,11 +1,12 @@
+/*
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import IpfsClient from 'ipfs-http-client';
-import { mockConfigService } from '../../test/test-helpers';
-import { IpfsMessageDto } from './dto/ipfs-message.dto';
+import { mockConfigService } from '../../../test/test-helpers';
+import { IpfsMessageDto } from '../dto/ipfs-message.dto';
 import { mockIpfsConfigValues } from './ipfs.configuration';
-import { IpfsService } from './ipfs.service';
-import { mockIpfsClient } from './test-helpers/mock-ipfs.client';
+import { IpfsService } from './file-manager-ipfs';
+import { mockIpfsClient } from '../test-helpers/mock-ipfs.client';
 describe('IpfsService', () => {
   let service: IpfsService;
   let config: ConfigService;
@@ -54,3 +55,4 @@ describe('IpfsService', () => {
     expect(actual).toEqual(path);
   });
 });
+*/

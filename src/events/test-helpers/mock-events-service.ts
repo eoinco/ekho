@@ -12,5 +12,7 @@ export const mockEventsService: jest.Mock<Omit<EventsService, 'eventsRepository'
     saveBlockInfo: jest.fn(),
     getFirstUnprocessedEvent: jest.fn(),
     markEventAsProcessed: jest.fn(),
+    createEkhoFromEvent: jest.fn(),
+    createEventFromEkho: jest.fn(),
   };
 });

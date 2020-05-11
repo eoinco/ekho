@@ -1,18 +1,17 @@
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { EkhoEvent } from 'src/events/entities/events.entity';
 import { getManager, getRepository, IsNull, Repository } from 'typeorm';
+import { ChainManager } from '../chain-manager/chain-manager.interface';
 import { Contact } from '../contacts/contacts.entity';
 import { ContactsService } from '../contacts/contacts.service';
 import { CryptographyService } from '../cryptography/cryptography.service';
 import EkhoEventDto from '../events/dto/ekhoevent.dto';
+import { EkhoEvent } from '../events/entities/events.entity';
 import { EventsService } from '../events/events.service';
-import { IpfsMessageDto } from '../ipfs/dto/ipfs-message.dto';
-import { IpfsService } from '../ipfs/ipfs.service';
+import { FileManager } from '../file-manager/file-manager.interface';
 import { KeyManager } from '../key-manager/key-manager.interface';
 import { User } from '../users/entities/users.entity';
 import { UsersService } from '../users/users.service';
-import { Web3Service } from '../web3/web3.service';
 import BroadcastChannelDto from './dto/broadcastchannel.dto';
 import CreateBroadcastChannelDto from './dto/create-broadcastchannel.dto';
 import CreateChannelDto from './dto/create-channel.dto';
@@ -53,8 +52,10 @@ export class ChannelsService {
     private readonly userService: UsersService,
     private readonly contactService: ContactsService,
     private readonly cryptoService: CryptographyService,
-    private readonly ipfsService: IpfsService,
-    private readonly web3Service: Web3Service,
+    @Inject('FileManager')
+    private readonly fileManager: FileManager,
+    @Inject('ChainManager')
+    private readonly chainManager: ChainManager,
     private readonly eventService: EventsService,
   ) {}
 
@@ -173,7 +174,7 @@ export class ChannelsService {
     );
 
     // send the message to IPFS
-    const messageLink = await this.sendToIpfs(newEncryptedMessage);
+    const messageLink = await this.sendToFileManager(newEncryptedMessage);
 
     // encrypt the message link with the message key
     const encryptedMessageLink = this.cryptoService.encrypt(messageLink, nonce, messageKey, this.UTF_8, this.BASE_64);
@@ -658,7 +659,7 @@ export class ChannelsService {
       newChannelMember.contact = contact;
     }
 
-    Logger.debug(`Channel.createChannelMember: created channel member ${newChannelMember.id}`);
+    Logger.debug(`Channel.createChannelMember: created channel member for channel ${newChannelMember.channel.name}`);
     return newChannelMember;
   }
 
@@ -742,13 +743,13 @@ export class ChannelsService {
 
   // returns the raw data (string for moment) from an encrypted IPFS link
   private async getRawMessage(encryptedLink: string, nonce: number, key: string): Promise<string> {
-    Logger.debug('Channel.getRawMessage: getting IPFS address from encrypted link');
+    Logger.debug('Channel.getRawMessage: getting file address from encrypted link');
 
     const rawMessageLink = this.cryptoService.decrypt(encryptedLink, nonce, key, this.BASE_64, this.UTF_8);
-    const rawMessageEncrypted = (await this.ipfsService.retrieve(rawMessageLink)).content;
+    const rawMessageEncrypted = await this.fileManager.retrieve(rawMessageLink);
     const rawMessage = this.cryptoService.decrypt(rawMessageEncrypted, nonce, key, this.BASE_64, this.UTF_8);
 
-    Logger.debug('Channel.getRawMessage: got IPFS address from encrypted link');
+    Logger.debug('Channel.getRawMessage: got file address from encrypted link');
     return rawMessage;
   }
 
@@ -791,17 +792,15 @@ export class ChannelsService {
 
   // *** External Delivery methods ***
 
-  // sends encrypted data to IPFS
-  private async sendToIpfs(message): Promise<string> {
+  // sends encrypted data to the File Manager
+  private async sendToFileManager(message): Promise<string> {
     try {
-      Logger.debug('Channel.sendToIpfs: sharing via IPFS');
+      Logger.debug('Channel.sendToFileManager: sharing via File Manager');
 
-      // Send the encrypted message to IPFS - get back the IPFS hash
-      const ipfsMessage = new IpfsMessageDto();
-      ipfsMessage.content = message;
-      const messageLink = await this.ipfsService.store(ipfsMessage);
+      // Send the encrypted message to File Manager to get back the identifier
+      const messageLink = await this.fileManager.store(message);
 
-      Logger.debug('Channel.sendToIpfs: shared via IPFS');
+      Logger.debug('Channel.sendToFileManager: shared via File Manager');
       return messageLink;
     } catch (e) {
       throw e;
@@ -811,17 +810,18 @@ export class ChannelsService {
   // sends ekho event to chain
   private async sendToChain(channelId: string, link: string, signature: string): Promise<boolean> {
     try {
-      Logger.debug(`Channel.sendToChain: emitting ${channelId} event to chain`);
+      Logger.debug(`Channel.sendToChain: emitting ${channelId} event to chain manager`);
 
       const ekho: EkhoEventDto = new EkhoEventDto();
       ekho.channelIdentifier = channelId;
       ekho.encryptedMessageLink = link;
       ekho.encryptedMessageLinkSignature = signature;
-      await this.web3Service.emitEkho(ekho);
+      await this.chainManager.emitEkho(ekho);
 
-      Logger.debug(`Channel.sendToChain: emitted ${channelId} event to chain`);
+      Logger.debug(`Channel.sendToChain: emitted ${channelId} event to chain manager`);
       return true;
     } catch (e) {
+      Logger.debug(`Channel.sendToChain: error writing to chain manager: ${e}`);
       throw e;
     }
   }

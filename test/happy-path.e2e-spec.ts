@@ -5,13 +5,15 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import moment from 'moment';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthModule } from '../src/auth/auth.module';
+import chainManagerConfiguration from '../src/chain-manager/chain-manager.configuration';
+import { ChainManagerModule } from '../src/chain-manager/chain-manager.module';
 import { ChannelsModule } from '../src/channels/channels.module';
 import { ChannelMessage } from '../src/channels/entities/channelmessages.entity';
 import { ContactsModule } from '../src/contacts/contacts.module';
 import ContactHandshakeDto from '../src/contacts/dto/contact-handshake.dto';
 import { DevelopmentModule } from '../src/development/development.module';
-import ipfsConfiguration from '../src/ipfs/ipfs.configuration';
-import { IpfsModule } from '../src/ipfs/ipfs.module';
+import fileManagerConfiguration from '../src/file-manager/file-manager.configuration';
+import { FileManagerModule } from '../src/file-manager/file-manager.module';
 import keyManagerConfiguration from '../src/key-manager/key-manager.configuration';
 import UserDto from '../src/users/dto/user.dto';
 import web3Configuration from '../src/web3/web3.configuration';
@@ -56,11 +58,12 @@ describe('Happy Path (e2e)', () => {
         ContactsModule,
         ChannelsModule,
         Web3Module,
-        IpfsModule,
+        FileManagerModule,
+        ChainManagerModule,
         TypeOrmModule.forRoot({ keepConnectionAlive: true }),
         ConfigModule.forRoot({
           isGlobal: true,
-          load: [ipfsConfiguration, web3Configuration, keyManagerConfiguration],
+          load: [fileManagerConfiguration, web3Configuration, keyManagerConfiguration, chainManagerConfiguration],
         }),
       ],
     }).compile();

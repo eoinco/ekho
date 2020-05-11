@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ChainManagerModule } from '../chain-manager/chain-manager.module';
 import { Contact } from '../contacts/contacts.entity';
 import { ContactsModule } from '../contacts/contacts.module';
 import { CryptographyModule } from '../cryptography/cryptography.module';
 import { EventsModule } from '../events/events.module';
-import { IpfsModule } from '../ipfs/ipfs.module';
+import { FileManagerModule } from '../file-manager/file-manager.module';
 import { KeyManagerModule } from '../key-manager/key-manager.module';
 import { User } from '../users/entities/users.entity';
 import { UsersModule } from '../users/users.module';
@@ -24,7 +25,8 @@ import { ChannelMembersResolver } from './resolvers/channelmembers.resolver';
     CryptographyModule,
     UsersModule,
     ContactsModule,
-    IpfsModule,
+    FileManagerModule,
+    ChainManagerModule,
     Web3Module,
     EventsModule,
     KeyManagerModule,
