@@ -12,7 +12,7 @@ export const chainManagerFactory: FactoryProvider<ChainManager> = {
   useFactory: (config: ConfigService, event: EventsService): ChainManager => {
     const builders = {
       infura: (): ChainManager => {
-        const rpcUrl = config.get('web3.rpcUrl');
+        const rpcUrl = config.get('chainmanager.infura.rpcUrl');
         const web3 = new Web3(new Web3.providers.WebsocketProvider(rpcUrl));
         return new InfuraChainManager(config, web3, event);
       },

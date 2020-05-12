@@ -30,14 +30,14 @@ export class InfuraChainManager implements ChainManager {
     private readonly web3: Web3,
     private readonly eventService: EventsService,
   ) {
-    this.chain = this.configService.get<string>('web3.chain');
-    this.hardfork = this.configService.get<string>('web3.hardfork');
-    this.rpcUrl = this.configService.get<string>('web3.rpcUrl');
-    this.contractAddress = this.configService.get<string>('web3.contractAddress');
-    this.address = this.configService.get<string>('web3.broadcastAccount.address');
-    this.publicKey = this.configService.get<string>('web3.broadcastAccount.publicKey');
-    this.privateKey = this.configService.get<string>('web3.broadcastAccount.privateKey');
-    this.gasPrice = this.configService.get<string>('web3.broadcastAccount.gasPrice');
+    this.chain = this.configService.get<string>('chainmanager.infura.chain');
+    this.hardfork = this.configService.get<string>('chainmanager.infura.hardfork');
+    this.rpcUrl = this.configService.get<string>('chainmanager.infura.rpcUrl');
+    this.contractAddress = this.configService.get<string>('chainmanager.infura.contractAddress');
+    this.address = this.configService.get<string>('chainmanager.infura.broadcastAccount.address');
+    this.publicKey = this.configService.get<string>('chainmanager.infura.broadcastAccount.publicKey');
+    this.privateKey = this.configService.get<string>('chainmanager.infura.broadcastAccount.privateKey');
+    this.gasPrice = this.configService.get<string>('chainmanager.infura.broadcastAccount.gasPrice');
   }
 
   async onModuleInit(): Promise<void> {
