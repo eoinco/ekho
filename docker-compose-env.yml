@@ -12,6 +12,7 @@ services:
     environment:
       - IPFS_HOST=ipfs.infura.io
       - IPFS_PORT=5001
+      - FILE_MANAGER_TYPE=db|ipfs
       - WEB3_CHAIN=rinkeby
       - WEB3_HARDFORK=muirGlacier
       - WEB3_RPC_URL=wss://rinkeby.infura.io/ws/v3/<<infura_auth_token goes here>>
@@ -20,6 +21,7 @@ services:
       - WEB3_BROADCAST_ACC_PUBLIC_KEY=<<broadcasting account public key goes here - 0x...>>
       - WEB3_BROADCAST_ACC_PRIVATE_KEY=<<broadcasting account private key goes here - 0x...>>
       - WEB3_GASPRICE=10
+      - CHAIN_MANAGER_TYPE=infura|db
       - VAULT_URL=http://vault:8200
       - VAULT_TOKEN=ekho-vault-token
       - KEY_MANAGER_TYPE=<<db|vault|provide>>
