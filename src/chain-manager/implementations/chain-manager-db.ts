@@ -14,6 +14,11 @@ export class DBChainManager implements ChainManager {
 
   async emitEkho(ekho: EkhoEventDto): Promise<string> {
     const event = new EkhoEvent();
+    event.channelId = ekho.channelIdentifier;
+    event.content = ekho.encryptedMessageLink;
+    event.signature = ekho.encryptedMessageLinkSignature;
+    event.status = 'BATCH';
+    event.txHash = 'NOT_MINED';
 
     try {
       await this.eventService.save(event);
