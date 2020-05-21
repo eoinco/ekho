@@ -18,7 +18,8 @@ export class DBChainManager implements ChainManager {
     event.content = ekho.encryptedMessageLink;
     event.signature = ekho.encryptedMessageLinkSignature;
     event.status = 'BATCH';
-    event.txHash = 'NOT_MINED';
+    event.batchChild = 'awaiting_batch';
+    event.batchParent = '';
 
     try {
       await this.eventService.save(event);
@@ -27,7 +28,7 @@ export class DBChainManager implements ChainManager {
     }
     if (event.id) {
       Logger.debug(`DBFileManager.store: file ${event.id} shared via DB`);
-      return event.toString();
+      return event.id;
     } else {
       throw new Error('DBFileManager.store: Error saving to DB');
     }

@@ -48,7 +48,7 @@ export class EventsService {
     return await this.eventsRepository.find();
   }
 
-  async getOneById(id: number): Promise<EkhoEvent> {
+  async getOneById(id: string): Promise<EkhoEvent> {
     return await this.eventsRepository.findOneOrFail({ id });
   }
 
@@ -77,7 +77,7 @@ export class EventsService {
     return cachedBlocks.max;
   }
 
-  async markEventAsProcessed(id: number): Promise<boolean> {
+  async markEventAsProcessed(id: string): Promise<boolean> {
     Logger.debug('marking event as processed.  id: ', id.toString());
 
     const myEvent = await this.getOneById(id);
@@ -93,7 +93,6 @@ export class EventsService {
       .select('MIN(EkhoEvent.id)', 'id')
       .addSelect(['EkhoEvent.channelId, EkhoEvent.content, EkhoEvent.signature'])
       .groupBy('EkhoEvent.id')
-      .where('EkhoEvent.processed = false')
       .orderBy('EkhoEvent.id', 'ASC')
       .getRawOne();
 

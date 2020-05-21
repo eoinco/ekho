@@ -12,7 +12,7 @@ export class EventsController {
   }
 
   @Get()
-  async getById(@Query('id') id: number): Promise<EkhoEvent> {
+  async getById(@Query('id') id: string): Promise<EkhoEvent> {
     return this.eventsService.getOneById(id);
   }
 

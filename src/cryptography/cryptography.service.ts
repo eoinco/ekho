@@ -91,7 +91,7 @@ export class CryptographyService {
 
   /**
    * Generates a SHA256 hash
-   * @param data input buffer to be hashed
+   * @param data input string to be hashed
    * @returns buffer containing the 32-byte SHA-256 hash
    */
   shortHash(data: string, key: string): string {
@@ -104,7 +104,7 @@ export class CryptographyService {
 
   /**
    * Generates a SHA256 hash
-   * @param data input buffer to be hashed
+   * @param data input string to be hashed
    * @returns buffer containing the 32-byte SHA-256 hash
    */
   hash(data: string): string {

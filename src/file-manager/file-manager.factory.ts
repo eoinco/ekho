@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import IpfsClient from 'ipfs-http-client';
 import { Repository } from 'typeorm';
+import { CryptographyService } from '../cryptography/cryptography.service';
 import { FileManager } from './file-manager.interface';
 import { FileChunk } from './implementations/file-db.entity';
 import { DBFileManager } from './implementations/file-manager-db';
@@ -10,7 +11,11 @@ import { IpfsFileManager } from './implementations/file-manager-ipfs';
 
 export const fileManagerFactory: FactoryProvider<FileManager> = {
   provide: 'FileManager',
-  useFactory: (config: ConfigService, fileChunkRepository: Repository<FileChunk>): FileManager => {
+  useFactory: (
+    config: ConfigService,
+    fileChunkRepository: Repository<FileChunk>,
+    cryptoService: CryptographyService,
+  ): FileManager => {
     const builders = {
       ipfs: (): FileManager => {
         const host = config.get<string>('filemanager.ipfs.host');
@@ -21,7 +26,7 @@ export const fileManagerFactory: FactoryProvider<FileManager> = {
         return new IpfsFileManager(ipfsClient);
       },
       db: (): FileManager => {
-        return new DBFileManager(fileChunkRepository);
+        return new DBFileManager(fileChunkRepository, cryptoService);
       },
     };
     const type = config.get<string>('filemanager.type');
@@ -33,5 +38,5 @@ export const fileManagerFactory: FactoryProvider<FileManager> = {
     }
     return builder();
   },
-  inject: [ConfigService, getRepositoryToken(FileChunk)],
+  inject: [ConfigService, getRepositoryToken(FileChunk), CryptographyService],
 };

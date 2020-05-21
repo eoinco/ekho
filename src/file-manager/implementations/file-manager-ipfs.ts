@@ -28,6 +28,7 @@ export class IpfsFileManager implements FileManager {
    * @param data data message to be added to IPFS
    */
   async store(data: string): Promise<string> {
+    Logger.debug(`IPFSFileManager.store: sending data to IPFS`);
     // this will perform badly with huge messages
     // check later how to use streams
     const stringData = JSON.stringify(data);
@@ -39,7 +40,7 @@ export class IpfsFileManager implements FileManager {
       Logger.debug(`IPFSFileManager.store: error: ${err.message}`);
     }
     if (result) {
-      Logger.debug(`Ipfs.store: file ${result.path} shared via IPFS`);
+      Logger.debug(`Ipfs.store: file ${result.path} sent to IPFS`);
       return result.path;
     } else {
       throw new Error('Ipfs.store: Error saving to Ipfs');

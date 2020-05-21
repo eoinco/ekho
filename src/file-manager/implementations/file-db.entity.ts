@@ -6,5 +6,8 @@ export class FileChunk {
   id: string;
 
   @Column()
+  address: string;
+
+  @Column()
   chunkData: string;
 }

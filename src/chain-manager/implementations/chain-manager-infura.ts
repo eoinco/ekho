@@ -76,6 +76,7 @@ export class InfuraChainManager implements ChainManager {
           tx.signature = event.encryptedMessageLinkSignature;
           tx.txHash = transactionHash;
           tx.status = 'mined'; // TODO: change to ENUM
+          tx.batchParent = '000-000-000-000';
           tx.block = blockNumber;
           await this.eventService.save(tx);
           Logger.debug(`Web3.Refresh: ekho event saved to db`);
@@ -90,7 +91,7 @@ export class InfuraChainManager implements ChainManager {
     );
   }
 
-  async emitEkho(event?: EkhoEventDto): Promise<string> {
+  async emitEkho(event: EkhoEventDto): Promise<string> {
     Logger.debug(`Web3.emitEkho: getting nonce for ${event.channelIdentifier}`);
     const txCount = await this.getTransactionCount(this.address);
     Logger.debug(`Web3.emitEkho: nonce for ${event.channelIdentifier} is ${txCount}`);
@@ -101,13 +102,7 @@ export class InfuraChainManager implements ChainManager {
 
     let ekho: Buffer;
 
-    // create random data if we haven't received an event
-    if (event) {
-      ekho = await this.eventService.createEkhoFromEvent(event);
-    } else {
-      Logger.debug('Web3.emitEkho: emitting random data');
-      ekho = require('crypto').randomBytes(118); // TODO: use cryptomodule for this
-    }
+    ekho = await this.eventService.createEkhoFromEvent(event);
 
     const data = contract.methods.broadcast(ekho).encodeABI();
 
@@ -143,8 +138,9 @@ export class InfuraChainManager implements ChainManager {
       }
 
       if (txHash) {
-        Logger.debug(`Web3.emitEkho: broadcasted transaction to chain. tx: ${txHash.transactionHash}`);
-        return txHash.transactionHash;
+        Logger.debug(`Web3.emitEkho: transaction broadcast to chain. tx: ${txHash.transactionHash}`);
+        const broadcastEvent = this.eventService.getByTransactionHash(txHash.transactionHash);
+        return (await broadcastEvent).id;
       } else {
         throw new Error(`Web3.emitEkho: error writing to chain`);
       }

@@ -109,7 +109,7 @@ export class ChannelsService {
               }
             } catch (e) {
               Logger.debug(
-                `Channel.Process: event ${newEvent.txHash.toString()} could not be decoded (possible collision).`,
+                `Channel.Process: event ${newEvent.id.toString()} could not be decoded (possible collision).`,
               );
             } finally {
               processReport.processedTotal++;
@@ -158,10 +158,8 @@ export class ChannelsService {
       nonce,
     );
 
-    // Get the message key
+    // Get the message key and add it to the channelmessage details
     const messageKey = await this.getMessageKey(channelMember.messageChainKey);
-
-    // update the message with the message key  //TODO refactor this so it's less fragmented
     newChannelMessage.messageKey = messageKey;
 
     // encrypt the message
@@ -188,11 +186,11 @@ export class ChannelsService {
     // encrypt the signature with the message key
     const encryptedSignature = this.cryptoService.encrypt(Signature, nonce, messageKey, this.BASE_64, this.BASE_64);
 
-    // send the blockchain transaction
-    const mined = await this.sendToChain(channelIdentifier, encryptedMessageLink, encryptedSignature);
+    // save the event
+    const eventId = await this.sendToChain(channelIdentifier, encryptedMessageLink, encryptedSignature);
 
     // sacrifice a chicken in the hope that this has been successful
-    if (mined) {
+    if (eventId) {
       // Update the member message chain key
       channelMember.messageChainKey = await this.ratchetChainKey(channelMember.messageChainKey);
 
@@ -203,13 +201,17 @@ export class ChannelsService {
         nonce + 1,
       );
 
+      Logger.debug(`Channel.createChannelMessage: getting event info for id: ${eventId}`);
+      newChannelMessage.ekhoEvent = await this.eventService.getOneById(eventId);
+
       // save the channel member & message details
+      Logger.debug(`Channel.createChannelMessage: saving channel message and member`);
       await getManager().transaction(async transactionalEntityManager => {
         await transactionalEntityManager.save(newChannelMessage);
         await transactionalEntityManager.save(channelMember);
       });
 
-      Logger.debug(`Channel.createChannelMessage: Channel message sent for ${channelMessage.userId}`);
+      Logger.debug(`Channel.createChannelMessage: Channel message created for ${channelMessage.userId}`);
       // return the encoded message
       const encodedMessage = new EncodedMessageDto();
       encodedMessage.channelIdentifier = channelIdentifier;
@@ -553,19 +555,20 @@ export class ChannelsService {
         // the message is an incoming message, so set up the Channel Message object
         const newChannelMessage = await this.createMessage(channelMember, rawMessage, nonce);
 
-        // associate the message with the event
+        // associate the message with the event and store the decryption key (for repudiation)
         newChannelMessage.ekhoEvent = messageEvent;
+        newChannelMessage.messageKey = messageKey;
 
         // update the channel member
         const updatedChannelMember = await this.updateChannelMemberDetails(channelMember, nonce);
 
-        Logger.debug(`Channel.ValidateAndDecryptEvent: saving message ${messageEvent.txHash} to database`);
+        Logger.debug(`Channel.ValidateAndDecryptEvent: saving message ${messageEvent.id} to database`);
         // update the db
         await getManager().transaction(async transactionalEntityManager => {
           await transactionalEntityManager.save(newChannelMessage);
           await transactionalEntityManager.save(updatedChannelMember);
         });
-        Logger.debug(`Channel.ValidateAndDecryptEvent: saved message ${messageEvent.txHash} to database`);
+        Logger.debug(`Channel.ValidateAndDecryptEvent: saved message ${messageEvent.id} to database`);
         // output the raw message
         const rawMessageContents = new RawMessageDto();
         rawMessageContents.messageContents = newChannelMessage.messageContents;
@@ -808,7 +811,7 @@ export class ChannelsService {
   }
 
   // sends ekho event to chain
-  private async sendToChain(channelId: string, link: string, signature: string): Promise<boolean> {
+  private async sendToChain(channelId: string, link: string, signature: string): Promise<string> {
     try {
       Logger.debug(`Channel.sendToChain: emitting ${channelId} event to chain manager`);
 
@@ -816,10 +819,10 @@ export class ChannelsService {
       ekho.channelIdentifier = channelId;
       ekho.encryptedMessageLink = link;
       ekho.encryptedMessageLinkSignature = signature;
-      await this.chainManager.emitEkho(ekho);
+      const eventid = await this.chainManager.emitEkho(ekho);
 
       Logger.debug(`Channel.sendToChain: emitted ${channelId} event to chain manager`);
-      return true;
+      return eventid;
     } catch (e) {
       Logger.debug(`Channel.sendToChain: error writing to chain manager: ${e}`);
       throw e;
