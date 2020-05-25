@@ -31,7 +31,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     const token = auth.split(' ')[1];
 
     try {
-      const decoded = jwt.verify(token, this.configService.get('BEARER_AUTH_PUBLIC_KEY'));
+      const decoded = jwt.verify(token, process.env.BEARER_AUTH_PUBLIC_KEY.replace(/\\n/gm, '\n'));
       return decoded;
     } catch (err) {
       const message = 'Token error: ' + (err.message || err.name);

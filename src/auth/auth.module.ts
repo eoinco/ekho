@@ -19,8 +19,8 @@ import { JwtStrategy } from './jwt.strategy';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        privateKey: configService.get('BEARER_JWT_PRIVATE_KEY'),
-        publicKey: configService.get('BEARER_AUTH_PUBLIC_KEY'),
+        privateKey: process.env.BEARER_JWT_PRIVATE_KEY.replace(/\\n/gm, '\n'),
+        publicKey: process.env.BEARER_AUTH_PUBLIC_KEY.replace(/\\n/gm, '\n'),
       }),
       inject: [ConfigService],
     }),
