@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
+import { TerminusModule } from '@nestjs/terminus';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 import chainManagerConfiguration from './chain-manager/chain-manager.configuration';
@@ -9,6 +10,7 @@ import { ChannelsModule } from './channels/channels.module';
 import { ContactsModule } from './contacts/contacts.module';
 import { DevelopmentModule } from './development/development.module';
 import fileManagerConfiguration from './file-manager/file-manager.configuration';
+import { HealthController } from './health/health.controller';
 import keyManagerConfiguration from './key-manager/key-manager.configuration';
 import { KeyManagerModule } from './key-manager/key-manager.module';
 import { UsersModule } from './users/users.module';
@@ -32,6 +34,8 @@ import { UsersModule } from './users/users.module';
     KeyManagerModule,
     ChainManagerModule,
     AuthModule,
+    TerminusModule,
   ],
+  controllers: [HealthController],
 })
 export class AppModule {}
