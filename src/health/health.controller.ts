@@ -5,6 +5,7 @@ import { HealthCheck, HealthCheckService, TypeOrmHealthIndicator } from '@nestjs
 export class HealthController {
   constructor(private health: HealthCheckService, private db: TypeOrmHealthIndicator) {}
 
+  // TODO add jwt validation for authorised users
   @Get()
   @HealthCheck()
   readiness() {
