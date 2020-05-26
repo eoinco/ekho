@@ -9,6 +9,7 @@ async function bootstrap() {
     .setTitle('Ekho')
     .setDescription('The Ekho API description')
     .setVersion('1.0')
+    .addBearerAuth()
     .addTag('ekho')
     .build();
   const document = SwaggerModule.createDocument(app, options);

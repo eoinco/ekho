@@ -9,12 +9,18 @@ import { Contact } from '../../contacts/contacts.entity';
 @Unique('UQ_NAME', ['name'])
 export class User {
   @Field(type => ID)
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Field()
   @Column({ length: 500 })
   name: string;
+
+  @Column({ nullable: true })
+  accessToken: string;
+
+  @Column({ nullable: true })
+  refreshToken: string;
 
   @Field(type => [ChannelMember], { nullable: true })
   @OneToMany(

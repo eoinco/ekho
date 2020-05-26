@@ -5,7 +5,7 @@ import { KeyManager } from '../key-manager.interface';
 export class VaultKeyManager implements KeyManager {
   constructor(private readonly client: AxiosInstance, private readonly cryptographyService: CryptographyService) {}
 
-  async createSigningKey(id: number): Promise<void> {
+  async createSigningKey(id: string): Promise<void> {
     const payload = {
       type: 'ed25519',
       derived: false,
@@ -14,13 +14,13 @@ export class VaultKeyManager implements KeyManager {
     this.checkResponse(response, `Failed to create private signing keys for user ${id}`, 204);
   }
 
-  async readPublicSigningKey(id: number): Promise<string> {
+  async readPublicSigningKey(id: string): Promise<string> {
     const response: AxiosResponse = await this.client.get(`/v1/users-signing-keys/keys/${id}`);
     this.checkResponse(response, `Failed to create private signing keys for user ${id}`);
     return response.data.data.keys['1'].public_key;
   }
 
-  async sign(id: number, data: string): Promise<string> {
+  async sign(id: string, data: string): Promise<string> {
     const payload = {
       input: Buffer.from(data).toString('base64'),
     };
@@ -31,7 +31,7 @@ export class VaultKeyManager implements KeyManager {
     return signature;
   }
 
-  async verifySignatureById(id: number, signature: string, data: string): Promise<boolean> {
+  async verifySignatureById(id: string, signature: string, data: string): Promise<boolean> {
     const pubKey: string = await this.readPublicSigningKey(id);
     return this.verifySignature(signature, data, pubKey);
   }

@@ -4,7 +4,7 @@ import { Channel } from './channels.entity';
 
 @Entity()
 export class BroadcastChannel {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn('uuid')
   id: number;
 
   @Column()

@@ -4,7 +4,7 @@ import { Contact } from '../contacts.entity';
 import ContactHandshakeDto from '../dto/contact-handshake.dto';
 
 const anonContact: Contact = {
-  id: -1,
+  id: '',
   name: 'anon-name',
   identifier: 'anon-identifier',
   user: fakeUser(),

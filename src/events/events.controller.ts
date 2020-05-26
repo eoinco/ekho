@@ -1,5 +1,4 @@
-import { Controller, Get, Put, Query } from '@nestjs/common';
-import EkhoEventDto from './dto/ekhoevent.dto';
+import { Controller, Get, Query } from '@nestjs/common';
 import { EkhoEvent } from './entities/events.entity';
 import { EventsService } from './events.service';
 
@@ -13,7 +12,7 @@ export class EventsController {
   }
 
   @Get()
-  async getById(@Query('id') id: number): Promise<EkhoEvent> {
+  async getById(@Query('id') id: string): Promise<EkhoEvent> {
     return this.eventsService.getOneById(id);
   }
 
@@ -21,7 +20,7 @@ export class EventsController {
   async getLatestBlockNumber(): Promise<number> {
     return this.eventsService.getLatestBlock();
   }
-
+  /*
   @Put()
   async markEventAsProcessed(@Query('id') id: number): Promise<boolean> {
     return this.eventsService.markEventAsProcessed(id);
@@ -31,4 +30,5 @@ export class EventsController {
   async processBlockchainEvents(): Promise<EkhoEventDto> {
     return this.eventsService.getFirstUnprocessedEvent();
   }
+  */
 }

@@ -3,11 +3,8 @@ import { ChannelMessage } from '../../channels/entities/channelmessages.entity';
 
 @Entity()
 export class EkhoEvent {
-  @PrimaryGeneratedColumn()
-  id: number;
-
-  @Column()
-  txHash: string;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
   status: string;
@@ -21,14 +18,20 @@ export class EkhoEvent {
   @Column({ nullable: true })
   signature?: string;
 
-  @CreateDateColumn()
-  createdDate: Date;
+  @Column({ nullable: true })
+  batchChild?: string;
 
   @Column({ nullable: true })
-  block: number;
+  batchParent?: string;
 
-  @Column({ nullable: false })
-  processed: boolean;
+  @Column({ nullable: true })
+  txHash?: string;
+
+  @Column({ nullable: true })
+  block?: number;
+
+  @CreateDateColumn()
+  createdDate: Date;
 
   @OneToMany(
     type => ChannelMessage,

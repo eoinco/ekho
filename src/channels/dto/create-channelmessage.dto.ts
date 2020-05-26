@@ -5,5 +5,5 @@ export default class CreateChannelMessageDto {
   messageContents: string;
 
   @ApiProperty({ description: 'Channel member identifier' })
-  channelMemberId: number;
+  channelMemberId: string;
 }

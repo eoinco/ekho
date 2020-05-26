@@ -19,6 +19,18 @@ export class UsersService {
     const newUser = new User();
     newUser.name = user.name;
 
+    if (user.userId) {
+      newUser.id = user.userId;
+    }
+
+    if (user.accessToken) {
+      newUser.accessToken = user.accessToken;
+    }
+
+    if (user.refreshToken) {
+      newUser.refreshToken = user.refreshToken;
+    }
+
     const queryRunner = this.userRepository.manager.connection.createQueryRunner();
     queryRunner.startTransaction();
     try {
@@ -41,11 +53,11 @@ export class UsersService {
     return this.userRepository.find({ relations: ['contacts'] });
   }
 
-  async getPublicKey(id: number): Promise<string> {
+  async getPublicKey(id: string): Promise<string> {
     return this.keyManagerService.readPublicSigningKey(id);
   }
 
-  async sign(id: number, data: string): Promise<string> {
+  async sign(id: string, data: string): Promise<string> {
     return this.keyManagerService.sign(id, data);
   }
 
@@ -60,7 +72,7 @@ export class UsersService {
     return this.userRepository.findOne({ where: { name } });
   }
 
-  async findById(id: number, orFail = false): Promise<User> {
+  async findById(id: string, orFail = false): Promise<User> {
     if (orFail) {
       return this.userRepository.findOneOrFail(id);
     } else {

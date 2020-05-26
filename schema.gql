@@ -56,7 +56,7 @@ input CreateChannelDto {
 }
 
 input CreateExternalChannelDto {
-  userId: Float!
+  userId: String!
 }
 
 """
@@ -66,35 +66,17 @@ input CreateUserDto {
   name: String!
 }
 
-"""
-The javascript `Date` as string. Type represents date and time as the ISO Date string.
-"""
-scalar DateTime
-
-type Message {
-  id: Float!
-  timestamp: DateTime!
-  from: String!
-  to: String!
-  content: String!
-  ipfsPath: String!
-  txHash: String!
-  channelId: String!
-}
-
 type Query {
   Contacts: [Contact!]!
-  contactsByUserId(userId: Float!): [Contact!]!
-  userById(id: Float!): User!
+  contactsByUserId(userId: String!): [Contact!]!
+  userById(id: String!): User!
   userByName(name: String!): User!
   Users: [User!]!
 }
 
-input SendMessageDto {
-  from: String!
-  to: String!
-  content: String!
-  channelId: String!
+input TestDataDto {
+  userId: String!
+  otherData: String!
 }
 
 type User {

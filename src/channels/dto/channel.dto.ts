@@ -5,7 +5,7 @@ import { Field, InputType } from 'type-graphql';
 export default class ChannelDto {
   @Field()
   @ApiProperty({ description: 'Channel Id' })
-  id: number;
+  id: string;
 
   @Field()
   @ApiProperty({ description: 'Channel name' })

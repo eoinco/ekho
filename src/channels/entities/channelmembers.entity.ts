@@ -8,8 +8,8 @@ import { Channel } from './channels.entity';
 @ObjectType()
 export class ChannelMember {
   @Field(type => ID)
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Field(type => Channel)
   @ManyToOne(

@@ -1,10 +1,13 @@
-import { Controller, Get, Inject, Logger, Param } from '@nestjs/common';
+import { Controller, Get, Inject, Logger, Param, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ContactsService } from '../contacts/contacts.service';
 import { CryptographyService } from '../cryptography/cryptography.service';
 import { KeyManager } from '../key-manager/key-manager.interface';
 import { User } from '../users/entities/users.entity';
 import { UsersService } from '../users/users.service';
 
+@ApiBearerAuth()
 @Controller('development')
 export class DevelopmentController {
   constructor(
@@ -15,8 +18,9 @@ export class DevelopmentController {
     private readonly keyManager: KeyManager,
   ) {}
 
+  @UseGuards(JwtAuthGuard)
   @Get('generate-master-key/:userId/:contactName')
-  async getMasterKey(@Param('userId') userId: number, @Param('contactName') contactName: string): Promise<string> {
+  async getMasterKey(@Param('userId') userId: string, @Param('contactName') contactName: string): Promise<string> {
     const user: User = await this.usersService.findById(userId);
     const contact = await this.contactsService.findOne(user.id, contactName, true);
 
@@ -24,8 +28,9 @@ export class DevelopmentController {
     return this.cryptographyService.generateECDHSharedSecret(contact.oneuseKey, contact.handshakePrivateKey);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get('contact/:userId/:contactName')
-  async getContact(@Param('userId') userId: number, @Param('contactName') contactName: string): Promise<any> {
+  async getContact(@Param('userId') userId: string, @Param('contactName') contactName: string): Promise<any> {
     const contact = await this.contactsService.findOne(userId, contactName, true);
     const contactHandshake = {
       id: contact.id,

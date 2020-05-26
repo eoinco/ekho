@@ -6,21 +6,54 @@ import { EkhoEvent } from './entities/events.entity';
 
 @Injectable()
 export class EventsService {
+  private readonly BASE_64 = 'base64';
+  private readonly HEX_ENCODING = 'hex';
+  private readonly BYTES = 'bytes';
+  private readonly CHANNEL_ID_BYTES = 8;
+  private readonly SIGNATURE_BYTES = 64;
+
   constructor(
     @InjectRepository(EkhoEvent)
     private readonly eventsRepository: Repository<EkhoEvent>,
   ) {}
 
-  async getAll(): Promise<EkhoEvent[]> {
-    return this.eventsRepository.find();
+  // creates the binary data to store on-chain from an ekho event dto
+  async createEkhoFromEvent(event: EkhoEventDto): Promise<Buffer> {
+    const temp: Buffer[] = [];
+
+    temp[0] = Buffer.from(event.channelIdentifier, this.BASE_64);
+    temp[1] = Buffer.from(event.encryptedMessageLink, this.BASE_64);
+    temp[2] = Buffer.from(event.encryptedMessageLinkSignature, this.BASE_64);
+    const ekho: Buffer = Buffer.concat(temp);
+
+    return ekho;
   }
 
-  async getOneById(id: number): Promise<EkhoEvent> {
-    return this.eventsRepository.findOneOrFail({ id });
+  // creates an ekho event dto from raw binary data
+  async createEventFromEkho(ekho: Buffer): Promise<EkhoEventDto> {
+    const event = new EkhoEventDto();
+
+    event.channelIdentifier = Buffer.from(ekho.slice(0, this.CHANNEL_ID_BYTES)).toString(this.BASE_64);
+    event.encryptedMessageLink = Buffer.from(
+      ekho.slice(this.CHANNEL_ID_BYTES, ekho.length - this.SIGNATURE_BYTES),
+    ).toString(this.BASE_64);
+    event.encryptedMessageLinkSignature = Buffer.from(
+      ekho.slice(ekho.length - this.SIGNATURE_BYTES, ekho.length),
+    ).toString(this.BASE_64);
+
+    return event;
+  }
+
+  async getAll(): Promise<EkhoEvent[]> {
+    return await this.eventsRepository.find();
+  }
+
+  async getOneById(id: string): Promise<EkhoEvent> {
+    return await this.eventsRepository.findOneOrFail({ id });
   }
 
   async getTransactionByChannelId(channelId: string): Promise<EkhoEvent> {
-    return this.eventsRepository.findOne({ where: { channelId } });
+    return await this.eventsRepository.findOne({ where: { channelId } });
   }
 
   async getByTransactionHash(transactionHash: string): Promise<EkhoEvent> {
@@ -44,11 +77,10 @@ export class EventsService {
     return cachedBlocks.max;
   }
 
-  async markEventAsProcessed(id: number): Promise<boolean> {
+  async markEventAsProcessed(id: string): Promise<boolean> {
     Logger.debug('marking event as processed.  id: ', id.toString());
 
     const myEvent = await this.getOneById(id);
-    myEvent.processed = true;
     await this.save(myEvent);
     return true;
   }
@@ -61,7 +93,6 @@ export class EventsService {
       .select('MIN(EkhoEvent.id)', 'id')
       .addSelect(['EkhoEvent.channelId, EkhoEvent.content, EkhoEvent.signature'])
       .groupBy('EkhoEvent.id')
-      .where('EkhoEvent.processed = false')
       .orderBy('EkhoEvent.id', 'ASC')
       .getRawOne();
 
