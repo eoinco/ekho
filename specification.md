@@ -2,8 +2,6 @@
 
 a decentralised messaging layer for ethereum
 
-eoin.connolly@gmail.com
-
 ## Objective
 
 Creation of a peer-to-peer communication protocol, capable of transmitting messages containing anchors to data of arbitrary size and type (text, PDF, docx, JPG, MPEG etc). Messages are digitally signed and attributable to senders with integrity and authenticity assured via digital signature. The platform does not have a reliance on a third party to perform routing of messages and access to the platform will be open to all participants running the platform software. The Ethereum blockchain will act as the message bus between participants and the protocol provides the mechanism to both notify participants of the existence of a message from a particular sender and provide the underlying data which is readable only by the intended recipient, be it an individual, a sender-designated group of individuals, or the general public. Additionally, a batching capability is present to enable the protocol to scale beyond the one message per transaction limitation when using a blockchain as a message bus.
